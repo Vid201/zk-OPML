@@ -1,10 +1,10 @@
 [package]
-name = "contracts"
+name = "zkopml-contracts"
 version = "0.1.0"
 edition = "2021"
 
 [dependencies]
-alloy = { workspace = true, features = ["contract", "rlp", "json"]}
+alloy.workspace = true
 foundry-compilers.workspace = true
 
 [build-dependencies]

@@ -21,6 +21,7 @@ The project has the following folders:
 1. [rust](https://www.rust-lang.org/tools/install)
 2. [just](https://just.systems/man/en/)
 3. [docker](https://www.docker.com/)
+4. [kurtosis](https://www.kurtosis.com/)
 
 ## Devnet usage
 
