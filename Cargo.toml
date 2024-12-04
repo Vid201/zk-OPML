@@ -1,6 +1,6 @@
 [workspace]
 resolver = "2"
-members = ["bin/*", "contracts"]
+members = ["bin/*", "contracts", "crates/*"]
 
 [workspace.dependencies]
 alloy = { version = "0.6.4", features = ["full"] }
@@ -11,7 +11,10 @@ tokio = { version = "1.39.1", features = ["full"] }
 tracing = "0.1.40"
 tracing-subscriber = { version = "0.3", features = ["env-filter"] }
 
+tract-onnx = { git = "https://github.com/sonos/tract/", rev = "37132e0397d0a73e5bd3a8615d932dabe44f6736", default-features = false }
+
 zkopml-contracts = { path = "contracts" }
+zkopml-ml = { path = "crates/ml" }
 
 [profile.dev]
 opt-level = 3

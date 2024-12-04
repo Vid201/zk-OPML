@@ -1,4 +1,5 @@
 pub mod deploy;
+pub mod register;
 pub mod tracing_util;
 
 #[derive(clap::Parser, Debug, Clone)]
@@ -7,12 +8,14 @@ pub mod tracing_util;
 #[command(author, version, about, long_about = None)]
 pub enum Cli {
     Deploy(deploy::DeployArgs),
+    Register(register::RegisterArgs),
 }
 
 impl Cli {
     pub fn verbosity(&self) -> u8 {
         match self {
             Cli::Deploy(args) => args.v,
+            Cli::Register(args) => args.v,
         }
     }
 }

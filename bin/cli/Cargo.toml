@@ -12,3 +12,4 @@ tracing.workspace = true
 tracing-subscriber.workspace = true 
 
 zkopml-contracts.workspace = true
+zkopml-ml.workspace = true

@@ -9,6 +9,7 @@ async fn main() -> anyhow::Result<()> {
 
     match cli {
         Cli::Deploy(args) => zkopml_cli::deploy::deploy(args).await?,
+        Cli::Register(args) => zkopml_cli::register::register(args).await?,
     }
 
     Ok(())

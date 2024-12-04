@@ -15,6 +15,7 @@ pub struct DeployArgs {
     /// Secret key to use for deploying contracts
     #[clap(long)]
     pub deployer_key: String,
+    
     /// Secret key that owns the contracts
     #[clap(long)]
     pub owner_key: String,
