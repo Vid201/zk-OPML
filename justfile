@@ -16,16 +16,23 @@ kurtosis-up:
 kurtosis-down:
 	kurtosis clean -a
 
-deploy verbosity="-vv" eth_rpc="http://127.0.0.1:32002" deployer="0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80" owner="0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80":
+ipfs-up:
+	docker compose up -d
+
+ipfs-down:
+	docker compose down
+
+deploy verbosity="-v" eth_rpc="http://127.0.0.1:32002" deployer="0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80" owner="0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80":
 	./target/release/zkopml-cli deploy \
 		--eth-node-address {{eth_rpc}} \
 		--deployer-key {{deployer}} \
 		--owner-key {{owner}} \
 		{{verbosity}}
 
-register verbosity="-vv" eth_rpc="http://127.0.0.1:32002" user="0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80" model="./testdata/nanoGPT/network.onnx":
+register verbosity="-v" eth_rpc="http://127.0.0.1:32002" user="0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80" model="./testdata/nanoGPT/network.onnx" registry="0x9fe46736679d2d9a65f0992f2272de9f3c7fa6e0":
 	./target/release/zkopml-cli register \
 		--eth-node-address {{eth_rpc}} \
+		--model-registry-address {{registry}} \
 		--user-key {{user}} \
 		--model-path {{model}} \
 		{{verbosity}}

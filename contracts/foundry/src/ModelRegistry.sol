@@ -52,11 +52,11 @@ contract ModelRegistry {
     mapping(uint256 => Inference) public inferences;
 
     /// @notice Registers a new model.
-    function registerModel(string memory uri, bytes32 root) public {
-        uint256 id = modelCounter++;
-        models[id] = Model(id, uri, root);
+    function registerModel(string memory uri, bytes32 root) public returns (uint256 modelId) {
+        modelId = modelCounter++;
+        models[modelId] = Model(modelId, uri, root);
 
-        emit ModelRegistered(id, uri, root);
+        emit ModelRegistered(modelId, uri, root);
     }
 
     /// @notice Returns a registered model.

@@ -43,7 +43,7 @@ pub async fn deploy(args: DeployArgs) -> anyhow::Result<()> {
 
     // Deploy ModelRegistry contract
     info!("Deploying ModelRegistry contract.");
-    let model_registry_contract = zkopml_contracts::ModelRegistry::deploy(&deployer_provider)
+    let model_registry_contract = zkopml_contracts::ModelRegistry::deploy_builder(&deployer_provider)
         .await
         .context("ModelRegistry contract deployment failed")?;
     info!("{:?}", &model_registry_contract);
