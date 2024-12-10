@@ -36,3 +36,12 @@ register verbosity="-v" eth_rpc="http://127.0.0.1:32002" user="0xac0974bec39a17e
 		--user-key {{user}} \
 		--model-path {{model}} \
 		{{verbosity}}
+
+request verbosity="-v" eth_rpc="http://127.0.0.1:32002" user="0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80" registry="0x9fe46736679d2d9a65f0992f2272de9f3c7fa6e0" id="0" input_data="./testdata/nanoGPT/input.json":
+	./target/release/zkopml-cli request \
+		--eth-node-address {{eth_rpc}} \
+		--model-registry-address {{registry}} \
+		--user-key {{user}} \
+		--model-id {{id}} \
+		--input-data-path {{input_data}} \
+		{{verbosity}}

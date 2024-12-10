@@ -20,19 +20,19 @@ struct Inference {
     /// @notice Id of the model.
     uint256 modelId;
     /// @notice Input data of the inference.
-    bytes32 inputData;
+    bytes inputData;
     /// @notice Output data of the inference.
-    bytes32 outputData;
+    bytes outputData;
 }
 
 /// @notice Emitted when new model is registered.
 event ModelRegistered(uint256 id, string uri, bytes32 root);
 
 /// @notice Emitted when new inference request is made.
-event InferenceRequested(uint256 modelId, uint256 inferenceId, bytes32 inputData);
+event InferenceRequested(uint256 modelId, uint256 inferenceId, bytes inputData);
 
 /// @notice Emitted when inference is responded.
-event InferenceResponded(uint256 modelId, uint256 inferenceId, bytes32 outputData);
+event InferenceResponded(uint256 modelId, uint256 inferenceId, bytes outputData);
 
 contract ModelRegistry {
     /// @notice Semantic version.
@@ -65,15 +65,15 @@ contract ModelRegistry {
     }
 
     /// @notice Requests an inference for a model.
-    function requestInference(uint256 modelId, bytes32 inputData) public returns (uint256 inferenceId) {
+    function requestInference(uint256 modelId, bytes calldata inputData) public returns (uint256 inferenceId) {
         inferenceId = inferenceCounter++;
-        inferences[inferenceId] = Inference(inferenceId, false, modelId, inputData, bytes32(0));
+        inferences[inferenceId] = Inference(inferenceId, false, modelId, inputData, "");
 
         emit InferenceRequested(modelId, inferenceId, inputData);
     }
 
     /// @notice Responds to an inference request.
-    function respondInference(uint256 inferenceId, bytes32 outputData) public returns (bool success) {
+    function respondInference(uint256 inferenceId, bytes calldata outputData) public returns (bool success) {
         if (inferences[inferenceId].done) {
             return false;
         }

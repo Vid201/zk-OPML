@@ -8,6 +8,8 @@ anyhow = "1.0.86"
 clap = { version = "4.5.11", features = ["derive"] }
 foundry-compilers = "0.11.0"
 ipfs-api-backend-hyper = "0.6"
+serde = "1.0.215"
+serde_json = "1.0.133"
 tokio = { version = "1.39.1", features = ["full"] }
 tracing = "0.1.40"
 tracing-subscriber = { version = "0.3", features = ["env-filter"] }

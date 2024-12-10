@@ -6,4 +6,5 @@ edition = "2021"
 [dependencies]
 anyhow.workspace = true
 rs_merkle.workspace = true
+serde.workspace = true
 tract-onnx.workspace = true

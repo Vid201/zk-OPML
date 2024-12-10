@@ -15,7 +15,7 @@ pub struct DeployArgs {
     /// Secret key to use for deploying contracts
     #[clap(long)]
     pub deployer_key: String,
-    
+
     /// Secret key that owns the contracts
     #[clap(long)]
     pub owner_key: String,
@@ -38,14 +38,15 @@ pub async fn deploy(args: DeployArgs) -> anyhow::Result<()> {
     let deployer_wallet = EthereumWallet::from(deployer_signer);
     let deployer_provider = ProviderBuilder::new()
         .with_recommended_fillers()
-        .wallet(&deployer_wallet)
+        .wallet(deployer_wallet)
         .on_http(args.eth_node_address.as_str().try_into()?);
 
     // Deploy ModelRegistry contract
     info!("Deploying ModelRegistry contract.");
-    let model_registry_contract = zkopml_contracts::ModelRegistry::deploy_builder(&deployer_provider)
-        .await
-        .context("ModelRegistry contract deployment failed")?;
+    let model_registry_contract =
+        zkopml_contracts::ModelRegistry::deploy_builder(deployer_provider)
+            .await
+            .context("ModelRegistry contract deployment failed")?;
     info!("{:?}", &model_registry_contract);
 
     // TODO: deploy zkVM verifier contracts
