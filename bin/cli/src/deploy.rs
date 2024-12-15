@@ -30,6 +30,7 @@ pub async fn deploy(args: DeployArgs) -> anyhow::Result<()> {
         .with_recommended_fillers()
         .wallet(&owner_wallet)
         .on_http(args.eth_node_address.as_str().try_into()?);
+    info!("Owner address: {}", owner_wallet.default_signer().address());
     // TODO: use owner provider
 
     // Initialize the deployer wallet
@@ -38,16 +39,19 @@ pub async fn deploy(args: DeployArgs) -> anyhow::Result<()> {
     let deployer_wallet = EthereumWallet::from(deployer_signer);
     let deployer_provider = ProviderBuilder::new()
         .with_recommended_fillers()
-        .wallet(deployer_wallet)
+        .wallet(deployer_wallet.clone())
         .on_http(args.eth_node_address.as_str().try_into()?);
+    info!(
+        "Deployer address: {}",
+        deployer_wallet.default_signer().address()
+    );
 
     // Deploy ModelRegistry contract
     info!("Deploying ModelRegistry contract.");
-    let model_registry_contract =
-        zkopml_contracts::ModelRegistry::deploy_builder(deployer_provider)
-            .await
-            .context("ModelRegistry contract deployment failed")?;
-    info!("{:?}", &model_registry_contract);
+    let model_registry_contract = zkopml_contracts::ModelRegistry::deploy(deployer_provider)
+        .await
+        .context("ModelRegistry contract deployment failed")?;
+    info!("{:?}", &model_registry_contract.address());
 
     // TODO: deploy zkVM verifier contracts
     // TODO: deploy DisputeGameContracts

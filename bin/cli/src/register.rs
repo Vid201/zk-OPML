@@ -1,5 +1,7 @@
 use alloy::{
-    network::EthereumWallet, primitives::Address, providers::ProviderBuilder,
+    network::EthereumWallet,
+    primitives::{Address, U256},
+    providers::ProviderBuilder,
     signers::local::LocalSigner,
 };
 use ipfs_api_backend_hyper::{IpfsApi, IpfsClient};
@@ -38,6 +40,7 @@ pub async fn register(args: RegisterArgs) -> anyhow::Result<()> {
         .with_recommended_fillers()
         .wallet(&user_wallet)
         .on_http(args.eth_node_address.as_str().try_into()?);
+    info!("User address: {}", user_wallet.default_signer().address());
 
     // Read the model file
     info!("Reading the model file from {}", args.model_path);
@@ -61,12 +64,15 @@ pub async fn register(args: RegisterArgs) -> anyhow::Result<()> {
     info!("Publishing the model metadata to the ModelRegistry contract.");
     let model_registry =
         zkopml_contracts::ModelRegistry::new(args.model_registry_address, user_provider);
-    let model_id = model_registry
+    let tx_hash = model_registry
         .registerModel(format!("ipfs://{}", result.hash), merkle_tree.root().into())
-        .call()
+        .send()
         .await?
-        .modelId;
-    info!("Model registered with ID: {}", model_id);
+        .watch()
+        .await?;
+    info!("Transaction hash: {}", tx_hash);
+    let model_id = U256::from(model_registry.modelCounter().call().await?._0);
+    info!("Model registered with ID: {}", model_id - U256::from(1));
 
     Ok(())
 }
