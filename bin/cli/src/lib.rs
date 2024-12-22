@@ -1,6 +1,7 @@
 pub mod deploy;
 pub mod register;
 pub mod request;
+pub mod submit;
 pub mod tracing_util;
 
 #[derive(clap::Parser, Debug, Clone)]
@@ -11,6 +12,7 @@ pub enum Cli {
     Deploy(deploy::DeployArgs),
     Register(register::RegisterArgs),
     Request(request::RequestArgs),
+    Submit(submit::SubmitArgs),
 }
 
 impl Cli {
@@ -19,6 +21,7 @@ impl Cli {
             Cli::Deploy(args) => args.v,
             Cli::Register(args) => args.v,
             Cli::Request(args) => args.v,
+            Cli::Submit(args) => args.v,
         }
     }
 }

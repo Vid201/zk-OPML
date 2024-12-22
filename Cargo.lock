@@ -5672,6 +5672,7 @@ dependencies = [
  "alloy",
  "anyhow",
  "clap",
+ "futures-util",
  "ipfs-api-backend-hyper",
  "serde",
  "serde_json",
