@@ -48,7 +48,7 @@ request verbosity="-v" eth_rpc="http://127.0.0.1:32002" user="0xac0974bec39a17e3
 		--input-data-path {{input_data}} \
 		{{verbosity}}
 
-submit verbosity="-v" eth_rpc="http://127.0.0.1:32002" user="0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80" id="0" model="./testdata/nanoGPT/network.onnx":
+submit verbosity="-v" eth_rpc="ws://127.0.0.1:32003" user="0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80" id="0" model="./testdata/nanoGPT/network.onnx":
 	./target/release/zkopml-cli submit \
 		--eth-node-address {{eth_rpc}} \
 		--model-registry-address {{registry}} \
@@ -56,3 +56,14 @@ submit verbosity="-v" eth_rpc="http://127.0.0.1:32002" user="0xac0974bec39a17e36
 		--model-id {{id}} \
 		--model-path {{model}} \
 		{{verbosity}}
+
+# TODO: fix this - deterministic registry address and separate process for submit script
+# TODO: fix verbosity levels
+demo verbosity="-v":
+	just kurtosis-up
+	just ipfs-up
+
+	just deploy {{verbosity}}
+	just register {{verbosity}}
+	just submit {{verbosity}}
+	just request {{verbosity}}

@@ -1,10 +1,12 @@
 use alloy::{
     eips::BlockNumberOrTag,
     network::EthereumWallet,
-    primitives::Address,
-    providers::{Provider, ProviderBuilder},
+    primitives::{Address, U256},
+    providers::{Provider, ProviderBuilder, WsConnect},
     rpc::types::Filter,
     signers::local::LocalSigner,
+    sol,
+    sol_types::SolEvent,
 };
 use futures_util::stream::StreamExt;
 use std::str::FromStr;
@@ -40,14 +42,21 @@ pub struct SubmitArgs {
     pub correct: bool,
 }
 
+sol!(
+    #[derive(Debug)]
+    event InferenceRequested(uint256 modelId, uint256 requestId, bytes input);
+);
+
 pub async fn submit(args: SubmitArgs) -> anyhow::Result<()> {
     // Initialize the user wallet
     let user_signer = LocalSigner::from_str(&args.user_key)?;
     let user_wallet = EthereumWallet::from(user_signer);
+    let ws_connect = WsConnect::new(args.eth_node_address);
     let user_provider = ProviderBuilder::new()
         .with_recommended_fillers()
         .wallet(&user_wallet)
-        .on_http(args.eth_node_address.as_str().try_into()?);
+        .on_ws(ws_connect)
+        .await?;
     info!("User address: {}", user_wallet.default_signer().address());
 
     // Listen for inference requests
@@ -65,6 +74,26 @@ pub async fn submit(args: SubmitArgs) -> anyhow::Result<()> {
     while let Some(log) = stream.next().await {
         // Parse the data
         println!("Received inference request: {:?}", log);
+        let request = InferenceRequested::decode_log_data(log.data(), false);
+        if request.is_err() {
+            info!("Failed to decode the request data");
+            continue;
+        }
+        let request = request.unwrap();
+        info!("Decoded request: {:?}", request);
+        let model_id: U256 = request.modelId;
+        let inference_id: U256 = request.requestId;
+        let input_data_arr_u8 = request.input.as_ref();
+        let num_f64s = input_data_arr_u8.len() / 8;
+        let input_data = vec![unsafe {
+            let f64_slice =
+                std::slice::from_raw_parts(input_data_arr_u8.as_ptr() as *const f64, num_f64s);
+            f64_slice.to_vec()
+        }];
+        info!(
+            "Model id: {}, Inference id: {}, Input data: {:?}",
+            model_id, inference_id, input_data
+        );
 
         // Perform the inference
 

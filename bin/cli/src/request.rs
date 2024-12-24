@@ -50,19 +50,17 @@ pub async fn request(args: RequestArgs) -> anyhow::Result<()> {
     let path = PathBuf::from(&args.input_data_path);
     let reader = File::open(&path)?;
     let data_file: DataFile = serde_json::from_reader(reader)?;
-    info!("Input data: {:?}", data_file.input_data);
+    let input_data: Vec<f64> = data_file.input_data.into_iter().flat_map(|v| v).collect();
+    info!("Input data: {:?}", input_data);
 
     // Request the inference
     let model_registry =
         zkopml_contracts::ModelRegistry::new(args.model_registry_address, user_provider);
     let model_id = U256::from(args.model_id);
     let input_data = Bytes::from_iter(unsafe {
-        std::slice::from_raw_parts(
-            data_file.input_data.as_ptr() as *const u8,
-            data_file.input_data.len() * 8,
-        )
-        .iter()
+        std::slice::from_raw_parts(input_data.as_ptr() as *const u8, input_data.len() * 8).iter()
     });
+
     let tx_hash = model_registry
         .requestInference(model_id, input_data)
         .send()
