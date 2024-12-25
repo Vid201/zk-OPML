@@ -1,7 +1,7 @@
 use alloy::{
     network::EthereumWallet,
     primitives::{Address, Bytes, U256},
-    providers::ProviderBuilder,
+    providers::{ProviderBuilder, WsConnect},
     signers::local::LocalSigner,
 };
 use std::{fs::File, path::PathBuf, str::FromStr};
@@ -39,10 +39,12 @@ pub async fn request(args: RequestArgs) -> anyhow::Result<()> {
     info!("Initializing user wallet.");
     let user_signer = LocalSigner::from_str(&args.user_key)?;
     let user_wallet = EthereumWallet::from(user_signer);
+    let ws_connect = WsConnect::new(args.eth_node_address);
     let user_provider = ProviderBuilder::new()
         .with_recommended_fillers()
         .wallet(&user_wallet)
-        .on_http(args.eth_node_address.as_str().try_into()?);
+        .on_ws(ws_connect)
+        .await?;
     info!("User address: {}", user_wallet.default_signer().address());
 
     // Read the input data
@@ -50,7 +52,7 @@ pub async fn request(args: RequestArgs) -> anyhow::Result<()> {
     let path = PathBuf::from(&args.input_data_path);
     let reader = File::open(&path)?;
     let data_file: DataFile = serde_json::from_reader(reader)?;
-    let input_data: Vec<f64> = data_file.input_data.into_iter().flat_map(|v| v).collect();
+    let input_data: Vec<f32> = data_file.input_data.into_iter().flat_map(|v| v).collect();
     info!("Input data: {:?}", input_data);
 
     // Request the inference
@@ -58,16 +60,15 @@ pub async fn request(args: RequestArgs) -> anyhow::Result<()> {
         zkopml_contracts::ModelRegistry::new(args.model_registry_address, user_provider);
     let model_id = U256::from(args.model_id);
     let input_data = Bytes::from_iter(unsafe {
-        std::slice::from_raw_parts(input_data.as_ptr() as *const u8, input_data.len() * 8).iter()
+        std::slice::from_raw_parts(input_data.as_ptr() as *const u8, input_data.len() * 4).iter()
     });
 
-    let tx_hash = model_registry
+    let tx = model_registry
         .requestInference(model_id, input_data)
         .send()
-        .await?
-        .watch()
         .await?;
-    info!("Transaction hash: {}", tx_hash);
+    info!("Transaction hash: {}", tx.tx_hash());
+    std::thread::sleep(std::time::Duration::from_secs(5));
     let inference_id = U256::from(model_registry.inferenceCounter().call().await?._0);
     info!(
         "Inference request sent with id: {}",

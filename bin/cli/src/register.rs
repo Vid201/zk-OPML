@@ -1,12 +1,13 @@
 use alloy::{
     network::EthereumWallet,
-    primitives::{Address, U256},
-    providers::ProviderBuilder,
+    primitives::{Address, Bytes, U256},
+    providers::{ProviderBuilder, WsConnect},
     signers::local::LocalSigner,
 };
 use ipfs_api_backend_hyper::{IpfsApi, IpfsClient};
 use std::{fs::File, str::FromStr};
 use tracing::info;
+use tract_onnx::prelude::*;
 use zkopml_ml::{merkle::ModelMerkleTree, onnx::load_onnx_model};
 
 #[derive(clap::Args, Debug, Clone)]
@@ -29,6 +30,14 @@ pub struct RegisterArgs {
     /// Path to the model file (ONNX)
     #[clap(long)]
     pub model_path: String,
+
+    /// Input shape of the model
+    #[clap(long, value_delimiter = ',')]
+    pub input_shape: Vec<usize>,
+
+    /// Output shape of the model
+    #[clap(long, value_delimiter = ',')]
+    pub output_shape: Vec<usize>,
 }
 
 pub async fn register(args: RegisterArgs) -> anyhow::Result<()> {
@@ -36,20 +45,23 @@ pub async fn register(args: RegisterArgs) -> anyhow::Result<()> {
     info!("Initializing user wallet.");
     let user_signer = LocalSigner::from_str(&args.user_key)?;
     let user_wallet = EthereumWallet::from(user_signer);
+    let ws_connect = WsConnect::new(args.eth_node_address);
     let user_provider = ProviderBuilder::new()
         .with_recommended_fillers()
         .wallet(&user_wallet)
-        .on_http(args.eth_node_address.as_str().try_into()?);
+        .on_ws(ws_connect)
+        .await?;
     info!("User address: {}", user_wallet.default_signer().address());
 
     // Read the model file
     info!("Reading the model file from {}", args.model_path);
     let mut file = std::fs::File::open(args.model_path.clone())?;
-    let model = load_onnx_model(&mut file)?;
+    let input_fact: InferenceFact = f32::fact(args.input_shape.as_slice()).into();
+    let model = load_onnx_model(&mut file, input_fact)?;
 
     // Create merkle tree from ONNX operators
     info!("Creating a Merkle tree from the model operators.");
-    let nodes: Vec<_> = model.graph.nodes().into_iter().cloned().collect();
+    let nodes: Vec<_> = model.graph().nodes().into_iter().cloned().collect();
     let merkle_tree = ModelMerkleTree::new(nodes);
     info!("Merkle root hash: {}", merkle_tree.root_hash());
 
@@ -63,14 +75,32 @@ pub async fn register(args: RegisterArgs) -> anyhow::Result<()> {
     // Publish the model metadata to the ModelRegistry contract
     info!("Publishing the model metadata to the ModelRegistry contract.");
     let model_registry =
-        zkopml_contracts::ModelRegistry::new(args.model_registry_address, user_provider);
-    let tx_hash = model_registry
-        .registerModel(format!("ipfs://{}", result.hash), merkle_tree.root().into())
+        zkopml_contracts::ModelRegistry::new(args.model_registry_address, user_provider.clone());
+    let input_shape = Bytes::from_iter(unsafe {
+        std::slice::from_raw_parts(
+            args.input_shape.as_ptr() as *const u8,
+            args.input_shape.len() * 8,
+        )
+        .iter()
+    });
+    let output_shape = Bytes::from_iter(unsafe {
+        std::slice::from_raw_parts(
+            args.output_shape.as_ptr() as *const u8,
+            args.output_shape.len() * 8,
+        )
+        .iter()
+    });
+    let tx = model_registry
+        .registerModel(
+            format!("ipfs://{}", result.hash),
+            input_shape,
+            output_shape,
+            merkle_tree.root().into(),
+        )
         .send()
-        .await?
-        .watch()
         .await?;
-    info!("Transaction hash: {}", tx_hash);
+    info!("Transaction hash: {}", tx.tx_hash());
+    std::thread::sleep(std::time::Duration::from_secs(5));
     let model_id = U256::from(model_registry.modelCounter().call().await?._0);
     info!("Model registered with ID: {}", model_id - U256::from(1));
 

@@ -22,9 +22,10 @@ tract-onnx = { git = "https://github.com/sonos/tract/", rev = "37132e0397d0a73e5
 zkopml-contracts = { path = "contracts" }
 zkopml-ml = { path = "crates/ml" }
 
-[profile.dev]
-opt-level = 3
+# TODO: uncomment optimizations
+# [profile.dev]
+# opt-level = 3
 
-[profile.release]
-debug = 1
-lto = true
+# [profile.release]
+# debug = 1
+# lto = true

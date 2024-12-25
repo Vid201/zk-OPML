@@ -1,4 +1,8 @@
-use alloy::{network::EthereumWallet, providers::ProviderBuilder, signers::local::LocalSigner};
+use alloy::{
+    network::EthereumWallet,
+    providers::{ProviderBuilder, WsConnect},
+    signers::local::LocalSigner,
+};
 use anyhow::Context;
 use std::str::FromStr;
 use tracing::info;
@@ -26,10 +30,12 @@ pub async fn deploy(args: DeployArgs) -> anyhow::Result<()> {
     info!("Initializing owner wallet.");
     let owner_signer = LocalSigner::from_str(&args.owner_key)?;
     let owner_wallet = EthereumWallet::from(owner_signer);
+    let ws_connect = WsConnect::new(args.eth_node_address);
     let _owner_provider = ProviderBuilder::new()
         .with_recommended_fillers()
         .wallet(&owner_wallet)
-        .on_http(args.eth_node_address.as_str().try_into()?);
+        .on_ws(ws_connect.clone())
+        .await?;
     info!("Owner address: {}", owner_wallet.default_signer().address());
     // TODO: use owner provider
 
@@ -40,7 +46,8 @@ pub async fn deploy(args: DeployArgs) -> anyhow::Result<()> {
     let deployer_provider = ProviderBuilder::new()
         .with_recommended_fillers()
         .wallet(deployer_wallet.clone())
-        .on_http(args.eth_node_address.as_str().try_into()?);
+        .on_ws(ws_connect)
+        .await?;
     info!(
         "Deployer address: {}",
         deployer_wallet.default_signer().address()
@@ -48,9 +55,10 @@ pub async fn deploy(args: DeployArgs) -> anyhow::Result<()> {
 
     // Deploy ModelRegistry contract
     info!("Deploying ModelRegistry contract.");
-    let model_registry_contract = zkopml_contracts::ModelRegistry::deploy(deployer_provider)
-        .await
-        .context("ModelRegistry contract deployment failed")?;
+    let model_registry_contract =
+        zkopml_contracts::ModelRegistry::deploy(deployer_provider.clone())
+            .await
+            .context("ModelRegistry contract deployment failed")?;
     info!("{:?}", &model_registry_contract.address());
 
     // TODO: deploy zkVM verifier contracts

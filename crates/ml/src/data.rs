@@ -1,6 +1,6 @@
 use serde::Deserialize;
 
-pub type Data = Vec<Vec<f64>>;
+pub type Data = Vec<Vec<f32>>;
 
 #[derive(Clone, Debug, Deserialize, Default, PartialEq)]
 pub struct DataFile {

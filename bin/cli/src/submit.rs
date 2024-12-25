@@ -1,7 +1,7 @@
 use alloy::{
     eips::BlockNumberOrTag,
     network::EthereumWallet,
-    primitives::{Address, U256},
+    primitives::{Address, Bytes, U256},
     providers::{Provider, ProviderBuilder, WsConnect},
     rpc::types::Filter,
     signers::local::LocalSigner,
@@ -11,6 +11,8 @@ use alloy::{
 use futures_util::stream::StreamExt;
 use std::str::FromStr;
 use tracing::info;
+use tract_onnx::prelude::*;
+use zkopml_ml::onnx::load_onnx_model;
 
 #[derive(clap::Args, Debug, Clone)]
 pub struct SubmitArgs {
@@ -36,6 +38,14 @@ pub struct SubmitArgs {
     /// Path to the model file (ONNX)
     #[clap(long)]
     pub model_path: String,
+
+    /// Input shape of the model
+    #[clap(long, value_delimiter = ',')]
+    pub input_shape: Vec<usize>,
+
+    /// Output shape of the model
+    #[clap(long, value_delimiter = ',')]
+    pub output_shape: Vec<usize>,
 
     /// Whether to submit correct result (for testing purposes)
     #[clap(long)]
@@ -84,11 +94,11 @@ pub async fn submit(args: SubmitArgs) -> anyhow::Result<()> {
         let model_id: U256 = request.modelId;
         let inference_id: U256 = request.requestId;
         let input_data_arr_u8 = request.input.as_ref();
-        let num_f64s = input_data_arr_u8.len() / 8;
+        let num_f32s = input_data_arr_u8.len() / 4;
         let input_data = vec![unsafe {
-            let f64_slice =
-                std::slice::from_raw_parts(input_data_arr_u8.as_ptr() as *const f64, num_f64s);
-            f64_slice.to_vec()
+            let f32_slice =
+                std::slice::from_raw_parts(input_data_arr_u8.as_ptr() as *const f32, num_f32s);
+            f32_slice.to_vec()
         }];
         info!(
             "Model id: {}, Inference id: {}, Input data: {:?}",
@@ -96,8 +106,35 @@ pub async fn submit(args: SubmitArgs) -> anyhow::Result<()> {
         );
 
         // Perform the inference
+        // TODO: read the model file from IPFS based on model id
+        // For now, we are going to assume there is only one model
+        info!("Reading the model file from {}", args.model_path);
+        let mut file = std::fs::File::open(args.model_path.clone())?;
+        let input_fact: InferenceFact = f32::fact(args.input_shape.as_slice()).into();
+        let model = load_onnx_model(&mut file, input_fact)?;
+        let input_data: Vec<f32> = input_data.into_iter().flat_map(|v| v).collect();
+        let input = Tensor::from_shape(args.input_shape.as_slice(), input_data.as_ref())?;
+        let result = model.inner.run(tvec!(input.clone().into()))?;
+        info!("Inference result: {:?}", result);
 
         // Submit the result
+        let output_data: Vec<f32> = result[0].to_array_view::<f32>()?.iter().copied().collect();
+        let output_data = Bytes::from_iter(unsafe {
+            std::slice::from_raw_parts(output_data.as_ptr() as *const u8, output_data.len() * 4)
+                .iter()
+        });
+        let model_registry = zkopml_contracts::ModelRegistry::new(
+            args.model_registry_address,
+            user_provider.clone(),
+        );
+        let tx = model_registry
+            .respondInference(inference_id, output_data)
+            .send()
+            .await?;
+        info!("Transaction hash: {}", tx.tx_hash());
+        info!("Inference {} responded", inference_id);
+
+        std::thread::sleep(std::time::Duration::from_secs(5));
 
         // TODO: spawn new thread and check if someone will challenge the result
     }
