@@ -70,3 +70,26 @@ submit:
 		--input-shape {{input_shape}} \
 		--output-shape {{output_shape}} \
 		{{verbosity}}
+
+submit-wrong:
+	./target/release/zkopml-cli submit \
+		--eth-node-address {{eth_rpc}} \
+		--model-registry-address {{registry}} \
+		--user-key {{user}} \
+		--model-id {{model_id}} \
+		--model-path {{model}} \
+		--input-shape {{input_shape}} \
+		--output-shape {{output_shape}} \
+		--defect \
+		{{verbosity}}
+
+verify:
+	./target/release/zkopml-cli verify \
+		--eth-node-address {{eth_rpc}} \
+		--model-registry-address {{registry}} \
+		--user-key {{user}} \
+		--model-id {{model_id}} \
+		--model-path {{model}} \
+		--input-shape {{input_shape}} \
+		--output-shape {{output_shape}} \
+		{{verbosity}}

@@ -3,6 +3,7 @@ pub mod register;
 pub mod request;
 pub mod submit;
 pub mod tracing_util;
+pub mod verify;
 
 #[derive(clap::Parser, Debug, Clone)]
 #[command(name = "zkopml-cli")]
@@ -13,6 +14,7 @@ pub enum Cli {
     Register(register::RegisterArgs),
     Request(request::RequestArgs),
     Submit(submit::SubmitArgs),
+    Verify(verify::VerifyArgs),
 }
 
 impl Cli {
@@ -22,6 +24,7 @@ impl Cli {
             Cli::Register(args) => args.v,
             Cli::Request(args) => args.v,
             Cli::Submit(args) => args.v,
+            Cli::Verify(args) => args.v,
         }
     }
 }

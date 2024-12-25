@@ -47,14 +47,14 @@ pub struct SubmitArgs {
     #[clap(long, value_delimiter = ',')]
     pub output_shape: Vec<usize>,
 
-    /// Whether to submit correct result (for testing purposes)
-    #[clap(long)]
-    pub correct: bool,
+    /// Whether to submit wrong result (for testing purposes)
+    #[clap(long, short)]
+    pub defect: bool,
 }
 
 sol!(
     #[derive(Debug)]
-    event InferenceRequested(uint256 modelId, uint256 requestId, bytes input);
+    event InferenceRequested(uint256 modelId, uint256 requestId, bytes inputData);
 );
 
 pub async fn submit(args: SubmitArgs) -> anyhow::Result<()> {
@@ -83,7 +83,7 @@ pub async fn submit(args: SubmitArgs) -> anyhow::Result<()> {
 
     while let Some(log) = stream.next().await {
         // Parse the data
-        println!("Received inference request: {:?}", log);
+        info!("Received inference request: {:?}", log);
         let request = InferenceRequested::decode_log_data(log.data(), false);
         if request.is_err() {
             info!("Failed to decode the request data");
@@ -93,7 +93,7 @@ pub async fn submit(args: SubmitArgs) -> anyhow::Result<()> {
         info!("Decoded request: {:?}", request);
         let model_id: U256 = request.modelId;
         let inference_id: U256 = request.requestId;
-        let input_data_arr_u8 = request.input.as_ref();
+        let input_data_arr_u8 = request.inputData.as_ref();
         let num_f32s = input_data_arr_u8.len() / 4;
         let input_data = vec![unsafe {
             let f32_slice =
@@ -118,7 +118,13 @@ pub async fn submit(args: SubmitArgs) -> anyhow::Result<()> {
         info!("Inference result: {:?}", result);
 
         // Submit the result
-        let output_data: Vec<f32> = result[0].to_array_view::<f32>()?.iter().copied().collect();
+        let mut output_data: Vec<f32> = result[0].to_array_view::<f32>()?.iter().copied().collect();
+        // If defect flag is set, submit wrong result
+        // TODO: figure out how to do defects anywhere in the computation graph of ONNX
+        if args.defect {
+            info!("Augmenting the result with a defect so it is wrong");
+            output_data[0] += 1.0;
+        }
         let output_data = Bytes::from_iter(unsafe {
             std::slice::from_raw_parts(output_data.as_ptr() as *const u8, output_data.len() * 4)
                 .iter()
