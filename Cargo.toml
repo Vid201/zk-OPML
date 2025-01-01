@@ -21,6 +21,10 @@ rs_merkle = "1.4.2"
 
 tract-onnx = { git = "https://github.com/sonos/tract/", rev = "37132e0397d0a73e5bd3a8615d932dabe44f6736", default-features = false }
 
+sp1-build = "3.4.0"
+sp1-sdk = "3.4.0"
+sp1-zkvm = "3.4.0"
+
 zkopml-contracts = { path = "contracts" }
 zkopml-ml = { path = "crates/ml" }
 

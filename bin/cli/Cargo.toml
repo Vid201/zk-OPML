@@ -18,5 +18,10 @@ tracing-log.workspace = true
 tracing-subscriber.workspace = true 
 tract-onnx.workspace = true
 
+sp1-sdk.workspace = true
+
 zkopml-contracts.workspace = true
 zkopml-ml.workspace = true
+
+[build-dependencies]
+sp1-build.workspace = true
