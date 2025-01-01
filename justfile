@@ -9,7 +9,7 @@ model := "./testdata/nanoGPT/network.onnx"
 input_data := "./testdata/nanoGPT/input.json"	
 input_shape := "1,64"
 output_shape := "64,65"
-registry := "0x5fc8d32690cc91d4c39d9d3abcbd16989f875707"
+registry := "0x5fbdb2315678afecb367f032d93f642f64180aa3"
 model_id := "0"
 
 # default recipe to display help information
@@ -93,3 +93,11 @@ verify:
 		--input-shape {{input_shape}} \
 		--output-shape {{output_shape}} \
 		{{verbosity}}
+
+prove:
+	./target/release/zkopml-cli prove \
+		--model-path {{model}} \
+		--input-data-path {{input_data}} \
+		--input-shape {{input_shape}} \
+		--output-shape {{output_shape}} \
+		-vv

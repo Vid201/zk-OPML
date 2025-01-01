@@ -1,7 +1,17 @@
 use anyhow::{anyhow, Result};
+use log::LevelFilter;
 use tracing::Level;
+use tracing_log::LogTracer;
 
 pub fn init_tracing_subscriber(verbosity_level: u8) -> Result<()> {
+    LogTracer::builder()
+        .with_max_level(match verbosity_level {
+            0 => LevelFilter::Info,
+            1 => LevelFilter::Debug,
+            _ => LevelFilter::Trace,
+        })
+        .init()?;
+
     let subscriber = tracing_subscriber::fmt()
         .with_max_level(match verbosity_level {
             0 => Level::INFO,

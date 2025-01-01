@@ -1,4 +1,5 @@
 pub mod deploy;
+pub mod prove;
 pub mod register;
 pub mod request;
 pub mod submit;
@@ -15,6 +16,7 @@ pub enum Cli {
     Request(request::RequestArgs),
     Submit(submit::SubmitArgs),
     Verify(verify::VerifyArgs),
+    Prove(prove::ProveArgs),
 }
 
 impl Cli {
@@ -25,6 +27,7 @@ impl Cli {
             Cli::Request(args) => args.v,
             Cli::Submit(args) => args.v,
             Cli::Verify(args) => args.v,
+            Cli::Prove(args) => args.v,
         }
     }
 }

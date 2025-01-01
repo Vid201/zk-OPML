@@ -13,6 +13,7 @@ async fn main() -> anyhow::Result<()> {
         Cli::Request(args) => zkopml_cli::request::request(args).await?,
         Cli::Submit(args) => zkopml_cli::submit::submit(args).await?,
         Cli::Verify(args) => zkopml_cli::verify::verify(args).await?,
+        Cli::Prove(args) => zkopml_cli::prove::prove(args).await?,
     }
 
     Ok(())

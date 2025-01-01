@@ -125,7 +125,7 @@ contract ModelRegistry {
         success = true;
     }
 
-    /// @notice Retussn an inference.
+    /// @notice Returns an inference.
     function getInference(
         uint256 inferenceId
     ) public view returns (Inference memory inference) {
