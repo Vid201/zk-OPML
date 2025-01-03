@@ -1,15 +1,15 @@
+use candle_onnx::onnx::NodeProto;
 use rs_merkle::algorithms::Sha256;
 use rs_merkle::{Hasher, MerkleTree};
 use std::collections::hash_map::DefaultHasher;
 use std::hash::Hash;
-use tract_onnx::prelude::{Node, TypedFact, TypedOp};
 
 pub struct ModelMerkleTree {
     pub inner: MerkleTree<Sha256>,
 }
 
 impl ModelMerkleTree {
-    pub fn new(nodes: Vec<Node<TypedFact, Box<dyn TypedOp>>>) -> Self {
+    pub fn new(nodes: Vec<NodeProto>) -> Self {
         let leaves: Vec<[u8; 32]> = nodes
             .iter()
             .map(|node| {

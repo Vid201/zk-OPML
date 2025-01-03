@@ -7,7 +7,6 @@ use alloy::{
 use ipfs_api_backend_hyper::{IpfsApi, IpfsClient};
 use std::{fs::File, str::FromStr};
 use tracing::info;
-use tract_onnx::prelude::*;
 use zkopml_ml::{merkle::ModelMerkleTree, onnx::load_onnx_model};
 
 #[derive(clap::Args, Debug, Clone)]
@@ -55,20 +54,19 @@ pub async fn register(args: RegisterArgs) -> anyhow::Result<()> {
 
     // Read the model file
     info!("Reading the model file from {}", args.model_path);
-    let mut file = std::fs::File::open(args.model_path.clone())?;
-    let input_fact: InferenceFact = f32::fact(args.input_shape.as_slice()).into();
-    let model = load_onnx_model(&mut file, input_fact)?;
+    let model_path = args.model_path.clone();
+    let model = load_onnx_model(&model_path)?;
 
     // Create merkle tree from ONNX operators
     info!("Creating a Merkle tree from the model operators.");
-    let nodes: Vec<_> = model.graph().nodes().into_iter().cloned().collect();
+    let nodes = model.graph().unwrap().node;
     let merkle_tree = ModelMerkleTree::new(nodes);
     info!("Merkle root hash: {}", merkle_tree.root_hash());
 
     // Publish the model to the decentralized storage (IPFS)
     info!("Publishing the model to the decentralized storage (IPFS).");
     let client = IpfsClient::default();
-    let file = File::open(args.model_path)?;
+    let file = File::open(model_path)?;
     let result = client.add(file).await?;
     info!("Model published to IPFS with hash: {}", result.hash);
 

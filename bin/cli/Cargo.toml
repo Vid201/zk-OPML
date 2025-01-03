@@ -6,6 +6,8 @@ edition = "2021"
 [dependencies]
 alloy.workspace = true
 anyhow.workspace = true
+candle-core.workspace = true
+candle-onnx.workspace = true
 clap.workspace = true
 futures-util.workspace = true
 ipfs-api-backend-hyper.workspace = true
@@ -16,7 +18,6 @@ tokio.workspace = true
 tracing.workspace = true
 tracing-log.workspace = true
 tracing-subscriber.workspace = true 
-tract-onnx.workspace = true
 
 sp1-sdk.workspace = true
 

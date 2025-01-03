@@ -8,10 +8,10 @@ use alloy::{
     sol,
     sol_types::SolEvent,
 };
+use candle_core::{Device, Tensor};
 use futures_util::StreamExt;
-use std::str::FromStr;
+use std::{collections::HashMap, str::FromStr};
 use tracing::info;
-use tract_onnx::prelude::*;
 use zkopml_ml::onnx::load_onnx_model;
 
 #[derive(clap::Args, Debug, Clone)]
@@ -81,6 +81,8 @@ pub async fn verify(args: VerifyArgs) -> anyhow::Result<()> {
         .await?;
     let mut stream = sub.into_stream();
 
+    let input_shape = args.input_shape.clone();
+
     while let Some(log) = stream.next().await {
         // Parse the data
         info!("Received inference response: {:?}", log);
@@ -124,16 +126,18 @@ pub async fn verify(args: VerifyArgs) -> anyhow::Result<()> {
         // TODO: read the model file from IPFS based on model id
         // For now, we are going to assume there is only one model
         info!("Reading the model file from {}", args.model_path);
-        let mut file = std::fs::File::open(args.model_path.clone())?;
-        let input_fact: InferenceFact = f32::fact(args.input_shape.as_slice()).into();
-        let model = load_onnx_model(&mut file, input_fact)?;
+        let model_path = args.model_path.clone();
+        let model = load_onnx_model(&model_path)?;
+
         let input_data: Vec<f32> = input_data.into_iter().flat_map(|v| v).collect();
-        let input = Tensor::from_shape(args.input_shape.as_slice(), input_data.as_ref())?;
-        let result = model.inner.run(tvec!(input.clone().into()))?;
-        info!("Inference result: {:?}", result);
+        let input = Tensor::from_vec(input_data, input_shape.clone(), &Device::Cpu)?;
+        let mut inputs: HashMap<String, Tensor> = HashMap::new();
+        inputs.insert("input".to_string(), input);
+        let result = model.inference(&mut inputs)?;
+        info!("Inference result: {:?}", result["output"]);
 
         // Compare the result with the expected output
-        let output_data: Vec<f32> = result[0].to_array_view::<f32>()?.iter().copied().collect();
+        let output_data: Vec<f32> = result["output"].flatten_all()?.to_vec1::<f32>()?;
         let output_data = Bytes::from_iter(unsafe {
             std::slice::from_raw_parts(output_data.as_ptr() as *const u8, output_data.len() * 4)
                 .iter()

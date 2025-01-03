@@ -19,7 +19,8 @@ tracing-subscriber = { version = "0.3", features = ["env-filter"] }
 
 rs_merkle = "1.4.2"
 
-tract-onnx = { git = "https://github.com/sonos/tract/", rev = "37132e0397d0a73e5bd3a8615d932dabe44f6736", default-features = false }
+candle-core = { git = "https://github.com/Vid201/candle/", branch = "feat/onnx_eval_one" }
+candle-onnx = { git = "https://github.com/Vid201/candle/", branch = "feat/onnx_eval_one" }
 
 sp1-build = "3.4.0"
 sp1-sdk = "3.4.0"
