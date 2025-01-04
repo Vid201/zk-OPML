@@ -1,6 +1,6 @@
-use candle_core::Tensor;
+use candle_core::{Device, Tensor};
 use candle_onnx::{
-    eval::simple_eval_one,
+    eval::{get_tensor, simple_eval_one},
     onnx::{GraphProto, ModelProto, NodeProto},
     read_file, simple_eval,
 };
@@ -22,6 +22,23 @@ impl Model {
 
     pub fn num_operators(&self) -> usize {
         self.inner.graph.clone().unwrap().node.len()
+    }
+
+    pub fn prepare_inputs(
+        &self,
+        inputs: &mut HashMap<String, Tensor>,
+        input_data: Vec<f32>,
+        input_shape: Vec<usize>,
+    ) -> anyhow::Result<()> {
+        let input = Tensor::from_vec(input_data, input_shape, &Device::Cpu)?;
+        inputs.insert("input".to_string(), input.clone());
+
+        for t in self.inner.graph.clone().unwrap().initializer.iter() {
+            let tensor = get_tensor(t, t.name.as_str())?;
+            inputs.insert(t.name.to_string(), tensor);
+        }
+
+        Ok(())
     }
 
     pub fn inference(

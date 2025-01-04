@@ -98,7 +98,7 @@ pub async fn register(args: RegisterArgs) -> anyhow::Result<()> {
         .send()
         .await?;
     info!("Transaction hash: {}", tx.tx_hash());
-    std::thread::sleep(std::time::Duration::from_secs(5));
+    std::thread::sleep(std::time::Duration::from_secs(10));
     let model_id = U256::from(model_registry.modelCounter().call().await?._0);
     info!("Model registered with ID: {}", model_id - U256::from(1));
 

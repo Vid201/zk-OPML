@@ -1,23 +1,29 @@
 #![no_main]
 sp1_zkvm::entrypoint!(main);
 
+use candle_core::Tensor;
+use candle_onnx::{eval::simple_eval_one, onnx::NodeProto};
+use std::collections::HashMap;
+
 pub fn main() {
+    // read merkle tree/proof data
     let merkle_root = sp1_zkvm::io::read::<[u8; 32]>();
     let merkle_proof = sp1_zkvm::io::read::<Vec<u8>>();
-    // onnx operator
     let operator_index = sp1_zkvm::io::read::<u32>();
 
-    // sp1_zkvm::io::commit(&n);
+    // read onnx data
+    let mut inputs = sp1_zkvm::io::read::<HashMap<String, Tensor>>();
+    let node = sp1_zkvm::io::read::<NodeProto>();
 
-    // let mut a = 0;
-    // let mut b = 1;
-    // for _ in 0..n {
-    //     let mut c = a + b;
-    //     c %= 7919;
-    //     a = b;
-    //     b = c;
-    // }
+    // commit to certain values (public values)
+    sp1_zkvm::io::commit(&merkle_root);
+    sp1_zkvm::io::commit(&operator_index);
+    sp1_zkvm::io::commit(&inputs);
 
-    // sp1_zkvm::io::commit(&a);
-    // sp1_zkvm::io::commit(&b);
+    // TODO: verify merkle proof
+
+    // perform execution of one ONNX operator
+    simple_eval_one(&node, &mut inputs).expect("Execution error");
+
+    sp1_zkvm::io::commit(&inputs);
 }

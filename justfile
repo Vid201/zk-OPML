@@ -100,4 +100,4 @@ prove:
 		--input-data-path {{input_data}} \
 		--input-shape {{input_shape}} \
 		--output-shape {{output_shape}} \
-		-vv
+		{{verbosity}}

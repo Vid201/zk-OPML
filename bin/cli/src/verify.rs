@@ -8,7 +8,7 @@ use alloy::{
     sol,
     sol_types::SolEvent,
 };
-use candle_core::{Device, Tensor};
+use candle_core::Tensor;
 use futures_util::StreamExt;
 use std::{collections::HashMap, str::FromStr};
 use tracing::info;
@@ -130,11 +130,10 @@ pub async fn verify(args: VerifyArgs) -> anyhow::Result<()> {
         let model = load_onnx_model(&model_path)?;
 
         let input_data: Vec<f32> = input_data.into_iter().flat_map(|v| v).collect();
-        let input = Tensor::from_vec(input_data, input_shape.clone(), &Device::Cpu)?;
         let mut inputs: HashMap<String, Tensor> = HashMap::new();
-        inputs.insert("input".to_string(), input);
+        model.prepare_inputs(&mut inputs, input_data, input_shape.clone())?;
         let result = model.inference(&mut inputs)?;
-        info!("Inference result: {:?}", result["output"]);
+        info!("Inference result: {:?}", result["output"].to_string());
 
         // Compare the result with the expected output
         let output_data: Vec<f32> = result["output"].flatten_all()?.to_vec1::<f32>()?;

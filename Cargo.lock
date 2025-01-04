@@ -1435,7 +1435,7 @@ dependencies = [
 [[package]]
 name = "candle-core"
 version = "0.8.1"
-source = "git+https://github.com/Vid201/candle/?branch=feat%2Fonnx_eval_one#163b26c85b190d9c6e3a5f3655c56ea327e2a351"
+source = "git+https://github.com/Vid201/candle/?branch=feat%2Fonnx_eval_one#459eaa8e1a9fbfc1aec74508c60963931841909c"
 dependencies = [
  "byteorder",
  "gemm",
@@ -1447,6 +1447,7 @@ dependencies = [
  "rand_distr",
  "rayon",
  "safetensors",
+ "serde",
  "thiserror 1.0.69",
  "ug",
  "yoke",
@@ -1456,7 +1457,7 @@ dependencies = [
 [[package]]
 name = "candle-nn"
 version = "0.8.1"
-source = "git+https://github.com/Vid201/candle/?branch=feat%2Fonnx_eval_one#163b26c85b190d9c6e3a5f3655c56ea327e2a351"
+source = "git+https://github.com/Vid201/candle/?branch=feat%2Fonnx_eval_one#459eaa8e1a9fbfc1aec74508c60963931841909c"
 dependencies = [
  "candle-core",
  "half",
@@ -1470,12 +1471,14 @@ dependencies = [
 [[package]]
 name = "candle-onnx"
 version = "0.8.1"
-source = "git+https://github.com/Vid201/candle/?branch=feat%2Fonnx_eval_one#163b26c85b190d9c6e3a5f3655c56ea327e2a351"
+source = "git+https://github.com/Vid201/candle/?branch=feat%2Fonnx_eval_one#459eaa8e1a9fbfc1aec74508c60963931841909c"
 dependencies = [
  "candle-core",
  "candle-nn",
  "prost 0.12.6",
- "prost-build",
+ "prost-build-config",
+ "serde",
+ "serde_yaml",
 ]
 
 [[package]]
@@ -5275,6 +5278,16 @@ dependencies = [
 ]
 
 [[package]]
+name = "prost-build-config"
+version = "0.6.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "6dcec5212c354f0007d9275bd0a109fe2a7daa308570e965d431a17d3a627505"
+dependencies = [
+ "prost-build",
+ "serde",
+]
+
+[[package]]
 name = "prost-derive"
 version = "0.12.6"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -6204,6 +6217,19 @@ dependencies = [
  "itoa",
  "ryu",
  "serde",
+]
+
+[[package]]
+name = "serde_yaml"
+version = "0.9.34+deprecated"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "6a8b1a1a2ebf674015cc02edccce75287f1a0130d394307b36743c2f5d504b47"
+dependencies = [
+ "indexmap",
+ "itoa",
+ "ryu",
+ "serde",
+ "unsafe-libyaml",
 ]
 
 [[package]]
@@ -7601,6 +7627,12 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "ebc1c04c71510c7f702b52b7c350734c9ff1295c464a03335b00bb84fc54f853"
 
 [[package]]
+name = "unsafe-libyaml"
+version = "0.2.11"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "673aac59facbab8a9007c7f6108d11f63b603f7cabff99fabf650fea5c32b861"
+
+[[package]]
 name = "unsigned-varint"
 version = "0.7.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -8373,6 +8405,8 @@ dependencies = [
 name = "zkopml-sp1"
 version = "0.1.0"
 dependencies = [
+ "candle-core",
+ "candle-onnx",
  "sp1-zkvm",
 ]
 

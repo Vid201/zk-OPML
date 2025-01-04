@@ -8,7 +8,7 @@ use alloy::{
     sol,
     sol_types::SolEvent,
 };
-use candle_core::{Device, Tensor};
+use candle_core::Tensor;
 use futures_util::stream::StreamExt;
 use std::{collections::HashMap, str::FromStr};
 use tracing::info;
@@ -115,11 +115,10 @@ pub async fn submit(args: SubmitArgs) -> anyhow::Result<()> {
         let model = load_onnx_model(&model_path)?;
 
         let input_data: Vec<f32> = input_data.into_iter().flat_map(|v| v).collect();
-        let input = Tensor::from_vec(input_data, input_shape.clone(), &Device::Cpu)?;
         let mut inputs: HashMap<String, Tensor> = HashMap::new();
-        inputs.insert("input".to_string(), input);
+        model.prepare_inputs(&mut inputs, input_data, input_shape.clone())?;
         let result = model.inference(&mut inputs)?;
-        info!("Inference result: {:?}", result["output"]);
+        info!("Inference result: {:?}", result["output"].to_string());
 
         // Submit the result
         let mut output_data: Vec<f32> = result["output"].flatten_all()?.to_vec1::<f32>()?;
@@ -144,7 +143,7 @@ pub async fn submit(args: SubmitArgs) -> anyhow::Result<()> {
         info!("Transaction hash: {}", tx.tx_hash());
         info!("Inference {} responded", inference_id);
 
-        std::thread::sleep(std::time::Duration::from_secs(5));
+        std::thread::sleep(std::time::Duration::from_secs(10));
 
         // TODO: spawn new thread and check if someone will challenge the result
     }

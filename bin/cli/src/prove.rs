@@ -1,8 +1,9 @@
-// use sp1_sdk::{include_elf, ProverClient, SP1Stdin};
-use candle_core::{Device, Tensor};
+use candle_core::Tensor;
+use candle_onnx::eval::simple_eval_one;
+use sp1_sdk::{ProverClient, SP1Stdin};
 use std::{collections::HashMap, fs::File, path::PathBuf};
 use tracing::info;
-use zkopml_ml::{data::DataFile, onnx::load_onnx_model};
+use zkopml_ml::{data::DataFile, merkle::ModelMerkleTree, onnx::load_onnx_model};
 
 #[derive(clap::Args, Debug, Clone)]
 pub struct ProveArgs {
@@ -43,48 +44,64 @@ pub async fn prove(args: ProveArgs) -> anyhow::Result<()> {
     let model = load_onnx_model(&model_path)?;
     info!("Number of ONNX operators: {}", model.num_operators());
 
-    let input = Tensor::from_vec(input_data, args.input_shape, &Device::Cpu)?;
     let mut inputs: HashMap<String, Tensor> = HashMap::new();
-    inputs.insert("input".to_string(), input);
+    model.prepare_inputs(&mut inputs, input_data.clone(), args.input_shape.clone())?;
     let result = model.inference(&mut inputs)?;
     info!("Inference result: {:?}", result["output"].to_string());
-    println!("inputs: {:?}", inputs["/Reshape_output_0"].to_string());
-    inputs.remove("/Reshape_output_0");
-    println!("inputs: {:?}", inputs);
 
-    let node = model.get_node(3).unwrap();
-    println!("node: {:?}", node.output[0]);
-    let _ = model.eval_one(node, &mut inputs)?;
-    println!("inputs: {:?}", inputs["/Reshape_output_0"].to_string());
+    // Create merkle tree from ONNX operators
+    info!("Creating a Merkle tree from the model operators.");
+    let nodes = model.graph().unwrap().node;
+    let merkle_tree = ModelMerkleTree::new(nodes);
+    info!("Merkle root hash: {}", merkle_tree.root_hash());
 
-    // // Create SP1 proof of execution
-    // let n = 1000u32;
-    // let mut stdin = SP1Stdin::new();
-    // stdin.write(&n);
+    // Create SP1 proof of execution
+    let mut stdin = SP1Stdin::new();
+    stdin.write(&merkle_tree.root());
+    let merkle_proof: Vec<u8> = vec![1, 2, 3, 4, 5];
+    stdin.write(&merkle_proof);
+    let operator_index = 2_u32;
+    stdin.write(&operator_index);
+    let mut inputs: HashMap<String, Tensor> = HashMap::new();
+    model.prepare_inputs(&mut inputs, input_data, args.input_shape)?;
+    for i in 0..2 {
+        let node = model.get_node(i).unwrap();
+        simple_eval_one(&node, &mut inputs)?;
+    }
+    stdin.write(&inputs);
+    stdin.write(&model.get_node(2).unwrap());
 
-    // let client = ProverClient::new();
+    let client = ProverClient::new();
 
-    // let (_, report) = client.execute(ELF, stdin.clone()).run().unwrap();
-    // println!(
-    //     "executed program with {} cycles",
-    //     report.total_instruction_count()
-    // );
+    let (mut public_values, report) = client.execute(ELF, stdin.clone()).run().unwrap();
+    info!(
+        "executed program with {} cycles",
+        report.total_instruction_count()
+    );
+
+    let merkle_root_ret = public_values.read::<[u8; 32]>();
+    let operator_index_ret = public_values.read::<u32>();
+    let inputs_ret = public_values.read::<HashMap<String, Tensor>>();
+    let outputs_ret = public_values.read::<HashMap<String, Tensor>>();
+
+    info!("Returned public values:");
+    info!("Merkle root: {:?}", merkle_root_ret);
+    info!("Operator index: {:?}", operator_index_ret);
+    info!("Inputs: {:?}", inputs_ret);
+    info!("Outputs: {:?}", outputs_ret);
 
     // let (pk, vk) = client.setup(ELF);
-    // let mut proof = client.prove(&pk, stdin).run().unwrap();
+    // info!("generated keys (setup)");
 
-    // println!("generated proof");
+    // let proof = client.prove(&pk, stdin).run().unwrap();
+    // info!("generated proof");
 
-    // let _ = proof.public_values.read::<u32>();
-    // let a = proof.public_values.read::<u32>();
-    // let b = proof.public_values.read::<u32>();
-
-    // println!("a: {}", a);
-    // println!("b: {}", b);
+    // info!("a: {}", a);
+    // info!("b: {}", b);
 
     // client.verify(&proof, &vk).expect("verification failed");
 
-    // println!("verified proof");
+    // info!("verified proof");
 
     Ok(())
 }

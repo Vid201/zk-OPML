@@ -4,4 +4,6 @@ version = "0.1.0"
 edition = "2021"
 
 [dependencies]
+candle-core.workspace = true
+candle-onnx.workspace = true
 sp1-zkvm.workspace = true
