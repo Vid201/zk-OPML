@@ -8407,6 +8407,7 @@ version = "0.1.0"
 dependencies = [
  "candle-core",
  "candle-onnx",
+ "rs_merkle",
  "sp1-zkvm",
 ]
 

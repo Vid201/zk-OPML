@@ -3,7 +3,11 @@ use candle_onnx::eval::simple_eval_one;
 use sp1_sdk::{ProverClient, SP1Stdin};
 use std::{collections::HashMap, fs::File, path::PathBuf};
 use tracing::info;
-use zkopml_ml::{data::DataFile, merkle::ModelMerkleTree, onnx::load_onnx_model};
+use zkopml_ml::{
+    data::DataFile,
+    merkle::{MerkleTreeHash, ModelMerkleTree},
+    onnx::load_onnx_model,
+};
 
 #[derive(clap::Args, Debug, Clone)]
 pub struct ProveArgs {
@@ -58,10 +62,14 @@ pub async fn prove(args: ProveArgs) -> anyhow::Result<()> {
     // Create SP1 proof of execution
     let mut stdin = SP1Stdin::new();
     stdin.write(&merkle_tree.root());
-    let merkle_proof: Vec<u8> = vec![1, 2, 3, 4, 5];
+    let leaf_indices = vec![2_usize];
+    stdin.write(&leaf_indices);
+    let leaf_hashes = merkle_tree.leaves_hashes(leaf_indices.clone());
+    stdin.write(&leaf_hashes);
+    let total_leaves = merkle_tree.total_leaves();
+    stdin.write(&total_leaves);
+    let merkle_proof: Vec<u8> = merkle_tree.prove(leaf_indices).to_bytes();
     stdin.write(&merkle_proof);
-    let operator_index = 2_u32;
-    stdin.write(&operator_index);
     let mut inputs: HashMap<String, Tensor> = HashMap::new();
     model.prepare_inputs(&mut inputs, input_data, args.input_shape)?;
     for i in 0..2 {
@@ -79,14 +87,14 @@ pub async fn prove(args: ProveArgs) -> anyhow::Result<()> {
         report.total_instruction_count()
     );
 
-    let merkle_root_ret = public_values.read::<[u8; 32]>();
-    let operator_index_ret = public_values.read::<u32>();
+    let merkle_root_ret = public_values.read::<MerkleTreeHash>();
+    let leaf_indices_ret = public_values.read::<Vec<usize>>();
     let inputs_ret = public_values.read::<HashMap<String, Tensor>>();
     let outputs_ret = public_values.read::<HashMap<String, Tensor>>();
 
     info!("Returned public values:");
     info!("Merkle root: {:?}", merkle_root_ret);
-    info!("Operator index: {:?}", operator_index_ret);
+    info!("Leaf indices: {:?}", leaf_indices_ret);
     info!("Inputs: {:?}", inputs_ret);
     info!("Outputs: {:?}", outputs_ret);
 
