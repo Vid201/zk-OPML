@@ -8,3 +8,5 @@ candle-core.workspace = true
 candle-onnx.workspace = true
 rs_merkle.workspace = true
 sp1-zkvm.workspace = true
+
+zkopml-ml.workspace = true

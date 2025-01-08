@@ -1435,7 +1435,7 @@ dependencies = [
 [[package]]
 name = "candle-core"
 version = "0.8.1"
-source = "git+https://github.com/Vid201/candle/?branch=feat%2Fonnx_eval_one#459eaa8e1a9fbfc1aec74508c60963931841909c"
+source = "git+https://github.com/Vid201/candle/?branch=feat%2Fonnx_eval_one#7b38d4c0644bab66aaa3b6693d0a81e95426aeb1"
 dependencies = [
  "byteorder",
  "gemm",
@@ -1457,7 +1457,7 @@ dependencies = [
 [[package]]
 name = "candle-nn"
 version = "0.8.1"
-source = "git+https://github.com/Vid201/candle/?branch=feat%2Fonnx_eval_one#459eaa8e1a9fbfc1aec74508c60963931841909c"
+source = "git+https://github.com/Vid201/candle/?branch=feat%2Fonnx_eval_one#7b38d4c0644bab66aaa3b6693d0a81e95426aeb1"
 dependencies = [
  "candle-core",
  "half",
@@ -1471,7 +1471,7 @@ dependencies = [
 [[package]]
 name = "candle-onnx"
 version = "0.8.1"
-source = "git+https://github.com/Vid201/candle/?branch=feat%2Fonnx_eval_one#459eaa8e1a9fbfc1aec74508c60963931841909c"
+source = "git+https://github.com/Vid201/candle/?branch=feat%2Fonnx_eval_one#7b38d4c0644bab66aaa3b6693d0a81e95426aeb1"
 dependencies = [
  "candle-core",
  "candle-nn",
@@ -8409,6 +8409,7 @@ dependencies = [
  "candle-onnx",
  "rs_merkle",
  "sp1-zkvm",
+ "zkopml-ml",
 ]
 
 [[package]]

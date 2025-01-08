@@ -1,4 +1,5 @@
 set fallback := true
+set dotenv-load
 
 verbosity := "" # "-v"
 eth_rpc := "ws://127.0.0.1:32003"
@@ -11,6 +12,7 @@ input_shape := "1,1,28,28"
 output_shape := "1,1,28,28"
 registry := "0x5fbdb2315678afecb367f032d93f642f64180aa3"
 model_id := "0"
+operator_index := "0"
 
 # default recipe to display help information
 default:
@@ -100,4 +102,15 @@ prove:
 		--input-data-path {{input_data}} \
 		--input-shape {{input_shape}} \
 		--output-shape {{output_shape}} \
+		--operator-index {{operator_index}} \
+		{{verbosity}}
+
+prove-network:
+		SP1_PROVER=network SP1_PRIVATE_KEY=${SP1_PRIVATE_KEY} SKIP_SIMULATION=true \
+		./target/release/zkopml-cli prove \
+		--model-path {{model}} \
+		--input-data-path {{input_data}} \
+		--input-shape {{input_shape}} \
+		--output-shape {{output_shape}} \
+		--operator-index {{operator_index}} \
 		{{verbosity}}

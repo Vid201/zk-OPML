@@ -1,8 +1,7 @@
+use crate::utils::hash_string;
 use candle_onnx::onnx::NodeProto;
 use rs_merkle::algorithms::Sha256;
 use rs_merkle::{Hasher, MerkleProof, MerkleTree};
-use std::collections::hash_map::DefaultHasher;
-use std::hash::Hash;
 
 pub type MerkleTreeHash = [u8; 32];
 
@@ -52,12 +51,4 @@ impl ModelMerkleTree {
     pub fn prove(&self, indices: Vec<usize>) -> MerkleProof<Sha256> {
         self.inner.proof(&indices)
     }
-}
-
-pub fn hash_string(s: &str) -> u64 {
-    use std::hash::Hasher;
-
-    let mut hasher = DefaultHasher::new();
-    s.hash(&mut hasher);
-    hasher.finish()
 }

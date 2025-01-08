@@ -29,6 +29,10 @@ pub struct ProveArgs {
     /// Output shape of the model
     #[clap(long, value_delimiter = ',')]
     pub output_shape: Vec<usize>,
+
+    /// Index of the ONNX operator to prove
+    #[clap(long)]
+    pub operator_index: usize,
 }
 
 const ELF: &[u8] = include_bytes!("../../.././elf/riscv32im-succinct-zkvm-elf");
@@ -60,9 +64,10 @@ pub async fn prove(args: ProveArgs) -> anyhow::Result<()> {
     info!("Merkle root hash: {}", merkle_tree.root_hash());
 
     // Create SP1 proof of execution
+    let node_index = args.operator_index;
     let mut stdin = SP1Stdin::new();
     stdin.write(&merkle_tree.root());
-    let leaf_indices = vec![2_usize];
+    let leaf_indices = vec![node_index];
     stdin.write(&leaf_indices);
     let leaf_hashes = merkle_tree.leaves_hashes(leaf_indices.clone());
     stdin.write(&leaf_hashes);
@@ -72,15 +77,21 @@ pub async fn prove(args: ProveArgs) -> anyhow::Result<()> {
     stdin.write(&merkle_proof);
     let mut inputs: HashMap<String, Tensor> = HashMap::new();
     model.prepare_inputs(&mut inputs, input_data, args.input_shape)?;
-    for i in 0..2 {
+    for i in 0..node_index {
         let node = model.get_node(i).unwrap();
         simple_eval_one(&node, &mut inputs)?;
     }
+    let node = model.get_node(node_index).unwrap();
+    inputs.retain(|k, _| node.input.contains(k));
     stdin.write(&inputs);
-    stdin.write(&model.get_node(2).unwrap());
+    stdin.write(&node);
 
     let client = ProverClient::new();
 
+    info!(
+        "Executing the SP1 program. Proving ONNX operator: {:?}",
+        node
+    );
     let (mut public_values, report) = client.execute(ELF, stdin.clone()).run().unwrap();
     info!(
         "executed program with {} cycles",
@@ -89,27 +100,24 @@ pub async fn prove(args: ProveArgs) -> anyhow::Result<()> {
 
     let merkle_root_ret = public_values.read::<MerkleTreeHash>();
     let leaf_indices_ret = public_values.read::<Vec<usize>>();
-    let inputs_ret = public_values.read::<HashMap<String, Tensor>>();
-    let outputs_ret = public_values.read::<HashMap<String, Tensor>>();
+    let inputs_hash = public_values.read::<u64>();
+    let outputs_hash = public_values.read::<u64>();
 
     info!("Returned public values:");
     info!("Merkle root: {:?}", merkle_root_ret);
     info!("Leaf indices: {:?}", leaf_indices_ret);
-    info!("Inputs: {:?}", inputs_ret);
-    info!("Outputs: {:?}", outputs_ret);
+    info!("Inputs hash: {:?}", inputs_hash);
+    info!("Outputs hash: {:?}", outputs_hash);
 
-    // let (pk, vk) = client.setup(ELF);
-    // info!("generated keys (setup)");
+    let (pk, vk) = client.setup(ELF);
+    info!("generated keys (setup)");
 
-    // let proof = client.prove(&pk, stdin).run().unwrap();
-    // info!("generated proof");
+    let proof = client.prove(&pk, stdin).plonk().run().unwrap();
+    info!("generated proof");
 
-    // info!("a: {}", a);
-    // info!("b: {}", b);
+    client.verify(&proof, &vk).expect("verification failed");
 
-    // client.verify(&proof, &vk).expect("verification failed");
-
-    // info!("verified proof");
+    info!("verified proof");
 
     Ok(())
 }
