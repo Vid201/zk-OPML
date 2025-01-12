@@ -8399,6 +8399,7 @@ dependencies = [
  "candle-onnx",
  "rs_merkle",
  "serde",
+ "serde_json",
 ]
 
 [[package]]
@@ -8408,6 +8409,7 @@ dependencies = [
  "candle-core",
  "candle-onnx",
  "rs_merkle",
+ "serde_json",
  "sp1-zkvm",
  "zkopml-ml",
 ]

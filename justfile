@@ -103,11 +103,22 @@ prove:
 		--input-shape {{input_shape}} \
 		--output-shape {{output_shape}} \
 		--operator-index {{operator_index}} \
+		--proof \
 		{{verbosity}}
 
 prove-network:
 		SP1_PROVER=network SP1_PRIVATE_KEY=${SP1_PRIVATE_KEY} SKIP_SIMULATION=true \
 		./target/release/zkopml-cli prove \
+		--model-path {{model}} \
+		--input-data-path {{input_data}} \
+		--input-shape {{input_shape}} \
+		--output-shape {{output_shape}} \
+		--operator-index {{operator_index}} \
+		--proof \
+		{{verbosity}}
+
+prove-no-proof:
+	./target/release/zkopml-cli prove \
 		--model-path {{model}} \
 		--input-data-path {{input_data}} \
 		--input-shape {{input_shape}} \

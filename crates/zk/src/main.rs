@@ -38,7 +38,17 @@ pub fn main() {
 
     // verify correct hash for ONNX operator
     // TODO: support multiple operators
-    let node_str = format!("{:?}", node);
+    let mut node_str = format!("{:?}", node);
+    let mut weights_str = String::new();
+    for input in node.input.iter() {
+        for (name, tensor) in inputs.iter() {
+            if input != "input" && input == name {
+                weights_str.push_str(serde_json::to_string(&tensor).unwrap().as_str());
+                break;
+            }
+        }
+    }
+    node_str.push_str(&weights_str);
     let hash = hash_string(&node_str);
     let node_hash = {
         use rs_merkle::Hasher;

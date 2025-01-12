@@ -12,7 +12,7 @@ High-level idea: ML outputs are optimistically accepted as correct, but anyone c
 
 The project has the following folders:
 
-- `contracts`: smart contract for fault proof game and zkVM proof verification
+- `contracts`: smart contracts for fault proof game and zkVM proof verification
 - `crates`: common code and libs
 - `bin`: binary files and cli
 
@@ -22,6 +22,7 @@ The project has the following folders:
 2. [just](https://just.systems/man/en/)
 3. [docker](https://www.docker.com/)
 4. [kurtosis](https://www.kurtosis.com/)
+5. [sp1](https://docs.succinct.xyz/docs/introduction)
 
 ## Devnet usage
 

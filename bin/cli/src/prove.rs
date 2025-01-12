@@ -33,6 +33,10 @@ pub struct ProveArgs {
     /// Index of the ONNX operator to prove
     #[clap(long)]
     pub operator_index: usize,
+
+    /// Generate a proof of execution
+    #[clap(long, short)]
+    pub proof: bool,
 }
 
 const ELF: &[u8] = include_bytes!("../../.././elf/riscv32im-succinct-zkvm-elf");
@@ -60,7 +64,7 @@ pub async fn prove(args: ProveArgs) -> anyhow::Result<()> {
     // Create merkle tree from ONNX operators
     info!("Creating a Merkle tree from the model operators.");
     let nodes = model.graph().unwrap().node;
-    let merkle_tree = ModelMerkleTree::new(nodes);
+    let merkle_tree = ModelMerkleTree::new(nodes, model.graph().unwrap());
     info!("Merkle root hash: {}", merkle_tree.root_hash());
 
     // Create SP1 proof of execution
@@ -109,15 +113,19 @@ pub async fn prove(args: ProveArgs) -> anyhow::Result<()> {
     info!("Inputs hash: {:?}", inputs_hash);
     info!("Outputs hash: {:?}", outputs_hash);
 
-    let (pk, vk) = client.setup(ELF);
-    info!("generated keys (setup)");
+    if args.proof {
+        let (pk, vk) = client.setup(ELF);
+        info!("generated keys (setup)");
 
-    let proof = client.prove(&pk, stdin).plonk().run().unwrap();
-    info!("generated proof");
+        let proof = client.prove(&pk, stdin).plonk().run().unwrap();
+        info!("generated proof");
 
-    client.verify(&proof, &vk).expect("verification failed");
+        client.verify(&proof, &vk).expect("verification failed");
 
-    info!("verified proof");
+        info!("verified proof");
+    } else {
+        info!("Proof generation is disabled.");
+    }
 
     Ok(())
 }

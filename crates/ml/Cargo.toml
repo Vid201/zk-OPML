@@ -9,3 +9,4 @@ candle-core.workspace = true
 candle-onnx.workspace = true
 rs_merkle.workspace = true
 serde.workspace = true
+serde_json.workspace = true

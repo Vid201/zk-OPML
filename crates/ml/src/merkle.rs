@@ -1,5 +1,5 @@
-use crate::utils::hash_string;
-use candle_onnx::onnx::NodeProto;
+use crate::utils::node_hash;
+use candle_onnx::onnx::{GraphProto, NodeProto};
 use rs_merkle::algorithms::Sha256;
 use rs_merkle::{Hasher, MerkleProof, MerkleTree};
 
@@ -10,12 +10,11 @@ pub struct ModelMerkleTree {
 }
 
 impl ModelMerkleTree {
-    pub fn new(nodes: Vec<NodeProto>) -> Self {
+    pub fn new(nodes: Vec<NodeProto>, graph: GraphProto) -> Self {
         let leaves: Vec<[u8; 32]> = nodes
             .iter()
             .map(|node| {
-                let node_str = format!("{:?}", node);
-                let hash = hash_string(&node_str);
+                let hash = node_hash(node, &graph);
                 Sha256::hash(hash.to_string().as_bytes())
             })
             .collect();
