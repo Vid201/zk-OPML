@@ -61,7 +61,7 @@ pub async fn register(args: RegisterArgs) -> anyhow::Result<()> {
     info!("Creating a Merkle tree from the model operators.");
     let nodes = model.graph().unwrap().node;
     let merkle_tree = ModelMerkleTree::new(nodes, model.graph().unwrap());
-    info!("Merkle root hash: {}", merkle_tree.root_hash());
+    info!("Merkle root hash: {:?}", merkle_tree.root());
 
     // Publish the model to the decentralized storage (IPFS)
     info!("Publishing the model to the decentralized storage (IPFS).");

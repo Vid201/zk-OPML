@@ -1,6 +1,6 @@
 use candle_core::Tensor;
 use candle_onnx::eval::simple_eval_one;
-use sp1_sdk::{ProverClient, SP1Stdin};
+use sp1_sdk::{include_elf, network::FulfillmentStrategy, Prover, ProverClient, SP1Stdin};
 use std::{collections::HashMap, fs::File, path::PathBuf};
 use tracing::info;
 use zkopml_ml::{
@@ -8,6 +8,12 @@ use zkopml_ml::{
     merkle::{MerkleTreeHash, ModelMerkleTree},
     onnx::load_onnx_model,
 };
+
+#[derive(clap::ValueEnum, Debug, Clone, PartialEq, Eq)]
+pub enum SP1Prover {
+    Cpu,
+    Network,
+}
 
 #[derive(clap::Args, Debug, Clone)]
 pub struct ProveArgs {
@@ -34,12 +40,12 @@ pub struct ProveArgs {
     #[clap(long)]
     pub operator_index: usize,
 
-    /// Generate a proof of execution
-    #[clap(long, short)]
-    pub proof: bool,
+    /// Type of SP1 prover
+    #[clap(long, default_value = "cpu")]
+    pub sp1_prover: SP1Prover,
 }
 
-const ELF: &[u8] = include_bytes!("../../.././elf/riscv32im-succinct-zkvm-elf");
+const ELF: &[u8] = include_elf!("zkopml-sp1");
 
 pub async fn prove(args: ProveArgs) -> anyhow::Result<()> {
     // Read the input data
@@ -65,7 +71,7 @@ pub async fn prove(args: ProveArgs) -> anyhow::Result<()> {
     info!("Creating a Merkle tree from the model operators.");
     let nodes = model.graph().unwrap().node;
     let merkle_tree = ModelMerkleTree::new(nodes, model.graph().unwrap());
-    info!("Merkle root hash: {}", merkle_tree.root_hash());
+    info!("Merkle root hash: {:?}", merkle_tree.root());
 
     // Create SP1 proof of execution
     let node_index = args.operator_index;
@@ -90,41 +96,73 @@ pub async fn prove(args: ProveArgs) -> anyhow::Result<()> {
     stdin.write(&inputs);
     stdin.write(&node);
 
-    let client = ProverClient::new();
+    if args.sp1_prover == SP1Prover::Cpu {
+        info!("Using the local/cpu SP1 prover.");
+        let client = ProverClient::builder().cpu().build();
+        info!(
+            "Executing the SP1 program. Proving ONNX operator: {:?}",
+            node
+        );
 
-    info!(
-        "Executing the SP1 program. Proving ONNX operator: {:?}",
-        node
-    );
-    let (mut public_values, report) = client.execute(ELF, stdin.clone()).run().unwrap();
-    info!(
-        "executed program with {} cycles",
-        report.total_instruction_count()
-    );
+        let (mut public_values, report) = client.execute(ELF, &stdin).run().unwrap();
+        info!(
+            "executed program with {} cycles",
+            report.total_instruction_count()
+        );
 
-    let merkle_root_ret = public_values.read::<MerkleTreeHash>();
-    let leaf_indices_ret = public_values.read::<Vec<usize>>();
-    let inputs_hash = public_values.read::<u64>();
-    let outputs_hash = public_values.read::<u64>();
+        let merkle_root_ret = public_values.read::<MerkleTreeHash>();
+        let leaf_indices_ret = public_values.read::<Vec<usize>>();
+        let inputs_hash = public_values.read::<u64>();
+        let outputs_hash = public_values.read::<u64>();
 
-    info!("Returned public values:");
-    info!("Merkle root: {:?}", merkle_root_ret);
-    info!("Leaf indices: {:?}", leaf_indices_ret);
-    info!("Inputs hash: {:?}", inputs_hash);
-    info!("Outputs hash: {:?}", outputs_hash);
+        info!("Returned public values:");
+        info!("Merkle root: {:?}", merkle_root_ret);
+        info!("Leaf indices: {:?}", leaf_indices_ret);
+        info!("Inputs hash: {:?}", inputs_hash);
+        info!("Outputs hash: {:?}", outputs_hash);
+    } else {
+        info!("Using the network SP1 prover.");
+        let client = ProverClient::builder().network().build();
+        info!(
+            "Executing the SP1 program. Proving ONNX operator: {:?}",
+            node
+        );
 
-    if args.proof {
+        let (mut public_values, report) = client.execute(ELF, &stdin).run().unwrap();
+        info!(
+            "executed program with {} cycles",
+            report.total_instruction_count()
+        );
+
+        let merkle_root_ret = public_values.read::<MerkleTreeHash>();
+        let leaf_indices_ret = public_values.read::<Vec<usize>>();
+        let inputs_hash = public_values.read::<u64>();
+        let outputs_hash = public_values.read::<u64>();
+
+        info!("Returned public values:");
+        info!("Merkle root: {:?}", merkle_root_ret);
+        info!("Leaf indices: {:?}", leaf_indices_ret);
+        info!("Inputs hash: {:?}", inputs_hash);
+        info!("Outputs hash: {:?}", outputs_hash);
+
         let (pk, vk) = client.setup(ELF);
         info!("generated keys (setup)");
 
-        let proof = client.prove(&pk, stdin).plonk().run().unwrap();
+        let program_hash = client.register_program(&vk, ELF).await?;
+        info!("registered program with hash: {:?}", program_hash);
+
+        let proof = client
+            .prove(&pk, &stdin)
+            .strategy(FulfillmentStrategy::Hosted)
+            .skip_simulation(true)
+            .plonk()
+            .run()
+            .unwrap();
         info!("generated proof");
 
         client.verify(&proof, &vk).expect("verification failed");
 
         info!("verified proof");
-    } else {
-        info!("Proof generation is disabled.");
     }
 
     Ok(())

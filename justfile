@@ -12,7 +12,7 @@ input_shape := "1,1,28,28"
 output_shape := "1,1,28,28"
 registry := "0x5fbdb2315678afecb367f032d93f642f64180aa3"
 model_id := "0"
-operator_index := "0"
+operator_index := "2"
 
 # default recipe to display help information
 default:
@@ -103,25 +103,16 @@ prove:
 		--input-shape {{input_shape}} \
 		--output-shape {{output_shape}} \
 		--operator-index {{operator_index}} \
-		--proof \
+		--sp1-prover cpu \
 		{{verbosity}}
 
 prove-network:
-		SP1_PROVER=network SP1_PRIVATE_KEY=${SP1_PRIVATE_KEY} SKIP_SIMULATION=true \
+		SP1_PROVER=network NETWORK_RPC_URL=${NETWORK_RPC_URL} NETWORK_PRIVATE_KEY=${NETWORK_PRIVATE_KEY} \
 		./target/release/zkopml-cli prove \
 		--model-path {{model}} \
 		--input-data-path {{input_data}} \
 		--input-shape {{input_shape}} \
 		--output-shape {{output_shape}} \
 		--operator-index {{operator_index}} \
-		--proof \
-		{{verbosity}}
-
-prove-no-proof:
-	./target/release/zkopml-cli prove \
-		--model-path {{model}} \
-		--input-data-path {{input_data}} \
-		--input-shape {{input_shape}} \
-		--output-shape {{output_shape}} \
-		--operator-index {{operator_index}} \
+		--sp1-prover network \
 		{{verbosity}}

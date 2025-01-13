@@ -22,9 +22,9 @@ rs_merkle = "1.4.2"
 candle-core = { git = "https://github.com/Vid201/candle/", branch = "feat/onnx_eval_one" }
 candle-onnx = { git = "https://github.com/Vid201/candle/", branch = "feat/onnx_eval_one" }
 
-sp1-build = "3.4.0"
-sp1-sdk = "3.4.0"
-sp1-zkvm = "3.4.0"
+sp1-build = "4.0.0-rc.10"
+sp1-sdk = "4.0.0-rc.10"
+sp1-zkvm = "4.0.0-rc.10"
 
 zkopml-contracts = { path = "contracts" }
 zkopml-ml = { path = "crates/ml" }
