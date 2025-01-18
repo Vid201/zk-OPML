@@ -15,7 +15,7 @@ impl ModelMerkleTree {
             .iter()
             .map(|node| {
                 let hash = node_hash(node, &graph);
-                Sha256::hash(hash.to_string().as_bytes())
+                Sha256::hash(hash.as_slice())
             })
             .collect();
 

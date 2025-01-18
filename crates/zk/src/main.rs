@@ -4,10 +4,8 @@ sp1_zkvm::entrypoint!(main);
 use candle_core::Tensor;
 use candle_onnx::{eval::simple_eval_one, onnx::NodeProto};
 use rs_merkle::{algorithms::Sha256, MerkleProof};
-use std::{
-    collections::HashMap,
-    hash::{DefaultHasher, Hash, Hasher},
-};
+use sha2::Digest;
+use std::collections::HashMap;
 use zkopml_ml::utils::hash_string;
 
 pub fn main() {
@@ -20,17 +18,19 @@ pub fn main() {
 
     // read onnx data
     let mut inputs = sp1_zkvm::io::read::<HashMap<String, Tensor>>();
+    let mut inputs_hashes = sp1_zkvm::io::read::<HashMap<String, Vec<u8>>>();
     let node = sp1_zkvm::io::read::<NodeProto>();
 
     // commit to certain values (public values)
     sp1_zkvm::io::commit(&merkle_root);
     sp1_zkvm::io::commit(&leaf_indices);
 
-    let mut input_entries = inputs.iter().collect::<Vec<_>>();
+    let mut input_entries = inputs_hashes.iter().collect::<Vec<_>>();
     input_entries.sort_by(|a, b| a.0.cmp(b.0));
-    let mut hasher = DefaultHasher::new();
-    input_entries.hash(&mut hasher); // TODO: figure out how to more efficiently hash a tensor
-    sp1_zkvm::io::commit(&hasher.finish());
+    let mut hasher = sha2::Sha256::new();
+    hasher.update(serde_json::to_string(&input_entries).unwrap().as_bytes()); // TODO: figure out how to more efficiently hash a tensor
+    let hash: Vec<u8> = hasher.finalize().to_vec();
+    sp1_zkvm::io::commit(&hash);
 
     // verify merkle proof
     let proof = MerkleProof::<Sha256>::try_from(merkle_proof).expect("Invalid merkle proof");
@@ -42,9 +42,15 @@ pub fn main() {
     let mut weights_str = String::new();
     for input in node.input.iter() {
         for (name, tensor) in inputs.iter() {
-            if input != "input" && input == name {
+            if input != "input" && input == name && !input.contains("output") {
                 weights_str.push_str(serde_json::to_string(&tensor).unwrap().as_str());
                 break;
+            } else {
+                // verify that we are working with correct input/output values
+                let mut hasher = sha2::Sha256::new();
+                hasher.update(serde_json::to_string(&tensor).unwrap().as_bytes()); // TODO: figure out how to more efficiently hash a tensor
+                let hash: Vec<u8> = hasher.finalize().to_vec();
+                assert!(hash == inputs_hashes.get(name).unwrap().clone());
             }
         }
     }
@@ -52,7 +58,7 @@ pub fn main() {
     let hash = hash_string(&node_str);
     let node_hash = {
         use rs_merkle::Hasher;
-        Sha256::hash(hash.to_string().as_bytes())
+        Sha256::hash(hash.as_slice())
     };
     assert!(node_hash == leaf_hashes[0]);
 
@@ -60,9 +66,20 @@ pub fn main() {
     // TODO: execute multiple operators
     simple_eval_one(&node, &mut inputs).expect("Execution error");
 
-    let mut input_entries = inputs.iter().collect::<Vec<_>>();
+    // add output values to inputs_hashes
+    for (name, tensor) in inputs.iter() {
+        if !inputs_hashes.contains_key(name) {
+            let mut hasher = sha2::Sha256::new();
+            hasher.update(serde_json::to_string(&tensor).unwrap().as_bytes()); // TODO: figure out how to more efficiently hash a tensor
+            let hash: Vec<u8> = hasher.finalize().to_vec();
+            inputs_hashes.insert(name.clone(), hash);
+        }
+    }
+
+    let mut input_entries = inputs_hashes.iter().collect::<Vec<_>>();
     input_entries.sort_by(|a, b| a.0.cmp(b.0));
-    let mut hasher = DefaultHasher::new();
-    input_entries.hash(&mut hasher); // TODO: figure out how to more efficiently hash a tensor
-    sp1_zkvm::io::commit(&hasher.finish());
+    let mut hasher = sha2::Sha256::new();
+    hasher.update(serde_json::to_string(&input_entries).unwrap().as_bytes()); // TODO: figure out how to more efficiently hash a tensor
+    let hash: Vec<u8> = hasher.finalize().to_vec();
+    sp1_zkvm::io::commit(&hash);
 }

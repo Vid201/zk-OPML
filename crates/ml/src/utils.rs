@@ -2,15 +2,15 @@ use candle_onnx::{
     eval::get_tensor,
     onnx::{GraphProto, NodeProto},
 };
-use std::hash::{DefaultHasher, Hash, Hasher};
+use sha2::{Digest, Sha256};
 
-pub fn hash_string(s: &str) -> u64 {
-    let mut hasher = DefaultHasher::new();
-    s.hash(&mut hasher);
-    hasher.finish()
+pub fn hash_string(s: &str) -> Vec<u8> {
+    let mut hasher = Sha256::new();
+    hasher.update(s.as_bytes());
+    hasher.finalize().to_vec()
 }
 
-pub fn node_hash(node: &NodeProto, graph: &GraphProto) -> u64 {
+pub fn node_hash(node: &NodeProto, graph: &GraphProto) -> Vec<u8> {
     let mut node_str = format!("{:?}", node);
     let mut weights_str = String::new();
     for input in node.input.iter() {

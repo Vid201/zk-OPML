@@ -12,7 +12,7 @@ input_shape := "1,1,28,28"
 output_shape := "1,1,28,28"
 registry := "0x5fbdb2315678afecb367f032d93f642f64180aa3"
 model_id := "0"
-operator_index := "2"
+operator_index := "4"
 
 # default recipe to display help information
 default:
