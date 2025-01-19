@@ -1,4 +1,6 @@
+use candle_core::Tensor;
 use serde::Deserialize;
+use sha2::{Digest, Sha256};
 
 pub type Data = Vec<Vec<f32>>;
 
@@ -6,4 +8,10 @@ pub type Data = Vec<Vec<f32>>;
 pub struct DataFile {
     pub input_data: Data,
     pub output_data: Option<Data>,
+}
+
+pub fn tensor_hash(tensor: &Tensor) -> [u8; 32] {
+    let mut hasher = Sha256::new();
+    hasher.update(serde_json::to_string(&tensor).unwrap().as_bytes()); // TODO: figure out how to more efficiently hash a tensor
+    hasher.finalize().into()
 }

@@ -2,7 +2,7 @@ set fallback := true
 set dotenv-load
 
 verbosity := "" # "-v"
-eth_rpc := "ws://127.0.0.1:32003"
+eth_rpc := "ws://127.0.0.1:8546"
 deployer := "0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80"
 owner := "0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80"
 user := "0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80"
@@ -57,6 +57,8 @@ request:
 	./target/release/zkopml-cli request \
 		--eth-node-address {{eth_rpc}} \
 		--model-registry-address {{registry}} \
+		--model-path {{model}} \
+		--input-shape {{input_shape}} \
 		--user-key {{user}} \
 		--model-id {{model_id}} \
 		--input-data-path {{input_data}} \

@@ -10,9 +10,10 @@ use alloy::{
 };
 use candle_core::Tensor;
 use futures_util::stream::StreamExt;
+use sha2::Digest;
 use std::{collections::HashMap, str::FromStr};
 use tracing::info;
-use zkopml_ml::onnx::load_onnx_model;
+use zkopml_ml::{data::tensor_hash, onnx::load_onnx_model};
 
 #[derive(clap::Args, Debug, Clone)]
 pub struct SubmitArgs {
@@ -54,7 +55,7 @@ pub struct SubmitArgs {
 
 sol!(
     #[derive(Debug)]
-    event InferenceRequested(uint256 modelId, uint256 requestId, bytes inputData);
+    event InferenceRequested(uint256 modelId, uint256 requestId, bytes inputData, bytes32 inputDataHash);
 );
 
 pub async fn submit(args: SubmitArgs) -> anyhow::Result<()> {
@@ -74,7 +75,7 @@ pub async fn submit(args: SubmitArgs) -> anyhow::Result<()> {
         zkopml_contracts::ModelRegistry::new(args.model_registry_address, user_provider.clone());
     let inference_request_filter = Filter::new()
         .address(args.model_registry_address)
-        .event("InferenceRequested(uint256,uint256,bytes)")
+        .event("InferenceRequested(uint256,uint256,bytes,bytes32)")
         .from_block(BlockNumberOrTag::Latest);
     let sub = user_provider
         .subscribe_logs(&inference_request_filter)
@@ -119,6 +120,16 @@ pub async fn submit(args: SubmitArgs) -> anyhow::Result<()> {
         model.prepare_inputs(&mut inputs, input_data, input_shape.clone())?;
         let result = model.inference(&mut inputs)?;
         info!("Inference result: {:?}", result["output"].to_string());
+        let mut input_hashes = HashMap::new();
+        for (name, tensor) in inputs.iter() {
+            let hash = tensor_hash(tensor);
+            input_hashes.insert(name.clone(), hash);
+        }
+        let mut input_entries = input_hashes.iter().collect::<Vec<_>>();
+        input_entries.sort_by(|a, b| a.0.cmp(b.0));
+        let mut hasher = sha2::Sha256::new();
+        hasher.update(serde_json::to_string(&input_entries).unwrap().as_bytes()); // TODO: figure out how to more efficiently hash a tensor
+        let hash: [u8; 32] = hasher.finalize().into();
 
         // Submit the result
         let mut output_data: Vec<f32> = result["output"].flatten_all()?.to_vec1::<f32>()?;
@@ -137,7 +148,7 @@ pub async fn submit(args: SubmitArgs) -> anyhow::Result<()> {
             user_provider.clone(),
         );
         let tx = model_registry
-            .respondInference(inference_id, output_data)
+            .respondInference(inference_id, output_data, hash.into())
             .send()
             .await?;
         info!("Transaction hash: {}", tx.tx_hash());

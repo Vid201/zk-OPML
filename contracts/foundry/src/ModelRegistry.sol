@@ -25,8 +25,12 @@ struct Inference {
     uint256 modelId;
     /// @notice Input data of the inference.
     bytes inputData;
+    /// @notice Input data hash.
+    bytes32 inputDataHash;
     /// @notice Output data of the inference.
     bytes outputData;
+    /// @notice Output data hash.
+    bytes32 outputDataHash;
 }
 
 /// @notice Emitted when new model is registered.
@@ -39,13 +43,19 @@ event ModelRegistered(
 );
 
 /// @notice Emitted when new inference request is made.
-event InferenceRequested(uint256 modelId, uint256 inferenceId, bytes inputData);
+event InferenceRequested(
+    uint256 modelId,
+    uint256 inferenceId,
+    bytes inputData,
+    bytes32 inputDataHash
+);
 
 /// @notice Emitted when inference is responded.
 event InferenceResponded(
     uint256 modelId,
     uint256 inferenceId,
-    bytes outputData
+    bytes outputData,
+    bytes32 outputDataHash
 );
 
 contract ModelRegistry {
@@ -89,7 +99,8 @@ contract ModelRegistry {
     /// @notice Requests an inference for a model.
     function requestInference(
         uint256 modelId,
-        bytes calldata inputData
+        bytes calldata inputData,
+        bytes32 inputDataHash
     ) public returns (uint256 inferenceId) {
         inferenceId = inferenceCounter;
         inferenceCounter = inferenceCounter + 1;
@@ -98,16 +109,19 @@ contract ModelRegistry {
             false,
             modelId,
             inputData,
+            inputDataHash,
+            "",
             ""
         );
 
-        emit InferenceRequested(modelId, inferenceId, inputData);
+        emit InferenceRequested(modelId, inferenceId, inputData, inputDataHash);
     }
 
     /// @notice Responds to an inference request.
     function respondInference(
         uint256 inferenceId,
-        bytes calldata outputData
+        bytes calldata outputData,
+        bytes32 outputDataHash
     ) public returns (bool success) {
         if (inferences[inferenceId].done) {
             return false;
@@ -115,11 +129,13 @@ contract ModelRegistry {
 
         inferences[inferenceId].done = true;
         inferences[inferenceId].outputData = outputData;
+        inferences[inferenceId].outputDataHash = outputDataHash;
 
         emit InferenceResponded(
             inferences[inferenceId].modelId,
             inferenceId,
-            outputData
+            outputData,
+            outputDataHash
         );
 
         success = true;

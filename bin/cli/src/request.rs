@@ -4,9 +4,14 @@ use alloy::{
     providers::{ProviderBuilder, WsConnect},
     signers::local::LocalSigner,
 };
-use std::{fs::File, path::PathBuf, str::FromStr};
+use candle_core::Tensor;
+use sha2::Digest;
+use std::{collections::HashMap, fs::File, path::PathBuf, str::FromStr};
 use tracing::info;
-use zkopml_ml::data::DataFile;
+use zkopml_ml::{
+    data::{tensor_hash, DataFile},
+    onnx::load_onnx_model,
+};
 
 #[derive(clap::Args, Debug, Clone)]
 pub struct RequestArgs {
@@ -20,6 +25,14 @@ pub struct RequestArgs {
     /// Address of the ModelRegistry contract
     #[clap(long)]
     pub model_registry_address: Address,
+
+    /// Path to the model file (ONNX)
+    #[clap(long)]
+    pub model_path: String,
+
+    /// Input shape of the model
+    #[clap(long, value_delimiter = ',')]
+    pub input_shape: Vec<usize>,
 
     /// Secret key to use for requesting the inference
     #[clap(long)]
@@ -55,6 +68,25 @@ pub async fn request(args: RequestArgs) -> anyhow::Result<()> {
     let input_data: Vec<f32> = data_file.input_data.into_iter().flat_map(|v| v).collect();
     info!("Input data: {:?}", input_data);
 
+    // Read the model just to structure the input data
+    // TODO: read the model file from IPFS based on model id
+    // For now, we are going to assume there is only one model
+    info!("Reading the model file from {}", args.model_path);
+    let model_path = args.model_path.clone();
+    let model = load_onnx_model(&model_path)?;
+    let mut inputs: HashMap<String, Tensor> = HashMap::new();
+    model.prepare_inputs(&mut inputs, input_data.clone(), args.input_shape)?;
+    let mut input_hashes = HashMap::new();
+    for (name, tensor) in inputs.iter() {
+        let hash = tensor_hash(tensor);
+        input_hashes.insert(name.clone(), hash);
+    }
+    let mut input_entries = input_hashes.iter().collect::<Vec<_>>();
+    input_entries.sort_by(|a, b| a.0.cmp(b.0));
+    let mut hasher = sha2::Sha256::new();
+    hasher.update(serde_json::to_string(&input_entries).unwrap().as_bytes()); // TODO: figure out how to more efficiently hash a tensor
+    let hash: [u8; 32] = hasher.finalize().into();
+
     // Request the inference
     let model_registry =
         zkopml_contracts::ModelRegistry::new(args.model_registry_address, user_provider);
@@ -64,7 +96,7 @@ pub async fn request(args: RequestArgs) -> anyhow::Result<()> {
     });
 
     let tx = model_registry
-        .requestInference(model_id, input_data)
+        .requestInference(model_id, input_data, hash.into())
         .send()
         .await?;
     info!("Transaction hash: {}", tx.tx_hash());

@@ -1,11 +1,10 @@
 use candle_core::Tensor;
 use candle_onnx::eval::simple_eval_one;
-use sha2::{Digest, Sha256};
 use sp1_sdk::{include_elf, network::FulfillmentStrategy, Prover, ProverClient, SP1Stdin};
 use std::{collections::HashMap, fs::File, path::PathBuf};
 use tracing::info;
 use zkopml_ml::{
-    data::DataFile,
+    data::{tensor_hash, DataFile},
     merkle::{MerkleTreeHash, ModelMerkleTree},
     onnx::load_onnx_model,
 };
@@ -103,9 +102,7 @@ pub async fn prove(args: ProveArgs) -> anyhow::Result<()> {
 
     let mut input_hashes = HashMap::new();
     for (name, tensor) in inputs.iter() {
-        let mut hasher = Sha256::new();
-        hasher.update(serde_json::to_string(&tensor).unwrap().as_bytes()); // TODO: figure out how to more efficiently hash a tensor
-        let hash: Vec<u8> = hasher.finalize().to_vec();
+        let hash = tensor_hash(tensor);
         input_hashes.insert(name.clone(), hash);
     }
     stdin.write(&input_hashes);
@@ -128,8 +125,8 @@ pub async fn prove(args: ProveArgs) -> anyhow::Result<()> {
 
         let merkle_root_ret = public_values.read::<MerkleTreeHash>();
         let leaf_indices_ret = public_values.read::<Vec<usize>>();
-        let inputs_hash = public_values.read::<Vec<u8>>();
-        let outputs_hash = public_values.read::<Vec<u8>>();
+        let inputs_hash = public_values.read::<[u8; 32]>();
+        let outputs_hash = public_values.read::<[u8; 32]>();
 
         info!("Returned public values:");
         info!("Merkle root: {:?}", merkle_root_ret);
@@ -152,8 +149,8 @@ pub async fn prove(args: ProveArgs) -> anyhow::Result<()> {
 
         let merkle_root_ret = public_values.read::<MerkleTreeHash>();
         let leaf_indices_ret = public_values.read::<Vec<usize>>();
-        let inputs_hash = public_values.read::<Vec<u8>>();
-        let outputs_hash = public_values.read::<Vec<u8>>();
+        let inputs_hash = public_values.read::<[u8; 32]>();
+        let outputs_hash = public_values.read::<[u8; 32]>();
 
         info!("Returned public values:");
         info!("Merkle root: {:?}", merkle_root_ret);
