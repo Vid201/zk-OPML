@@ -101,11 +101,9 @@ pub async fn request(args: RequestArgs) -> anyhow::Result<()> {
         .await?;
     info!("Transaction hash: {}", tx.tx_hash());
     std::thread::sleep(std::time::Duration::from_secs(10));
-    let inference_id = U256::from(model_registry.inferenceCounter().call().await?._0);
-    info!(
-        "Inference request sent with id: {}",
-        inference_id - U256::from(1)
-    );
+    let inference_id =
+        U256::from(model_registry.inferenceCounter().call().await?._0) - U256::from(1);
+    info!("Inference request sent with id: {}", inference_id);
 
     // TODO: wait and listen for result
 

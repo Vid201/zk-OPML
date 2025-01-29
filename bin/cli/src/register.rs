@@ -60,6 +60,7 @@ pub async fn register(args: RegisterArgs) -> anyhow::Result<()> {
     // Create merkle tree from ONNX operators
     info!("Creating a Merkle tree from the model operators.");
     let nodes = model.graph().unwrap().node;
+    let nodes_len = nodes.len();
     let merkle_tree = ModelMerkleTree::new(nodes, model.graph().unwrap());
     info!("Merkle root hash: {:?}", merkle_tree.root());
 
@@ -94,13 +95,14 @@ pub async fn register(args: RegisterArgs) -> anyhow::Result<()> {
             input_shape,
             output_shape,
             merkle_tree.root().into(),
+            U256::from(nodes_len).into(),
         )
         .send()
         .await?;
     info!("Transaction hash: {}", tx.tx_hash());
     std::thread::sleep(std::time::Duration::from_secs(10));
-    let model_id = U256::from(model_registry.modelCounter().call().await?._0);
-    info!("Model registered with ID: {}", model_id - U256::from(1));
+    let model_id = U256::from(model_registry.modelCounter().call().await?._0) - U256::from(1);
+    info!("Model registered with ID: {}", model_id);
 
     Ok(())
 }

@@ -1,64 +1,24 @@
 // SPDX-License-Identifier: UNLICENSED
 pragma solidity ^0.8.24;
 
-/// @notice Struct representing a model.
-struct Model {
-    /// @notice Id of the model.
-    uint256 id;
-    /// @notice URI/location of the model.
-    string uri;
-    /// @notice Input shape of the model.
-    bytes inputShape;
-    /// @notice Output shape of the model.
-    bytes outputShape;
-    /// @notice Merkle root of the model operators.
-    bytes32 root;
-}
-
-/// @notice Struct representing an inference.
-struct Inference {
-    /// @notice Id of the inference.
-    uint256 inferenceId;
-    /// @notice Flag indicating if the inference is done.
-    bool done;
-    /// @notice Id of the model.
-    uint256 modelId;
-    /// @notice Input data of the inference.
-    bytes inputData;
-    /// @notice Input data hash.
-    bytes32 inputDataHash;
-    /// @notice Output data of the inference.
-    bytes outputData;
-    /// @notice Output data hash.
-    bytes32 outputDataHash;
-}
+import "./interfaces/IModelRegistry.sol";
 
 /// @notice Emitted when new model is registered.
 event ModelRegistered(
-    uint256 id,
-    string uri,
-    bytes inputShape,
-    bytes outputShape,
-    bytes32 root
+    uint256 id, string uri, address registrar, bytes inputShape, bytes outputShape, bytes32 root, uint256 numOperators
 );
 
 /// @notice Emitted when new inference request is made.
 event InferenceRequested(
-    uint256 modelId,
-    uint256 inferenceId,
-    bytes inputData,
-    bytes32 inputDataHash
+    uint256 modelId, uint256 inferenceId, address requester, bytes inputData, bytes32 inputDataHash
 );
 
 /// @notice Emitted when inference is responded.
 event InferenceResponded(
-    uint256 modelId,
-    uint256 inferenceId,
-    bytes outputData,
-    bytes32 outputDataHash
+    uint256 modelId, uint256 inferenceId, address responder, bytes outputData, bytes32 outputDataHash
 );
 
-contract ModelRegistry {
+contract ModelRegistry is IModelRegistry {
     /// @notice Semantic version.
     /// @custom:sermver 0.1.0
     string public constant version = "0.1.0";
@@ -80,71 +40,57 @@ contract ModelRegistry {
         string memory uri,
         bytes calldata inputShape,
         bytes calldata outputShape,
-        bytes32 root
+        bytes32 root,
+        uint256 numOperators
     ) public returns (uint256 modelId) {
         modelId = modelCounter;
         modelCounter = modelCounter + 1;
-        models[modelId] = Model(modelId, uri, inputShape, outputShape, root);
+        models[modelId] = Model(modelId, uri, msg.sender, inputShape, outputShape, root, numOperators);
 
-        emit ModelRegistered(modelId, uri, inputShape, outputShape, root);
+        emit ModelRegistered(modelId, uri, msg.sender, inputShape, outputShape, root, numOperators);
     }
 
     /// @notice Returns a registered model.
-    function getModel(
-        uint256 modelId
-    ) public view returns (Model memory model) {
+    function getModel(uint256 modelId) public view returns (Model memory model) {
         return models[modelId];
     }
 
     /// @notice Requests an inference for a model.
-    function requestInference(
-        uint256 modelId,
-        bytes calldata inputData,
-        bytes32 inputDataHash
-    ) public returns (uint256 inferenceId) {
+    function requestInference(uint256 modelId, bytes calldata inputData, bytes32 inputDataHash)
+        public
+        returns (uint256 inferenceId)
+    {
         inferenceId = inferenceCounter;
         inferenceCounter = inferenceCounter + 1;
         inferences[inferenceId] = Inference(
-            inferenceId,
-            false,
-            modelId,
-            inputData,
-            inputDataHash,
-            "",
-            ""
+            inferenceId, block.timestamp, 0, false, msg.sender, address(0), modelId, inputData, inputDataHash, "", ""
         );
 
-        emit InferenceRequested(modelId, inferenceId, inputData, inputDataHash);
+        emit InferenceRequested(modelId, inferenceId, msg.sender, inputData, inputDataHash);
     }
 
     /// @notice Responds to an inference request.
-    function respondInference(
-        uint256 inferenceId,
-        bytes calldata outputData,
-        bytes32 outputDataHash
-    ) public returns (bool success) {
+    function respondInference(uint256 inferenceId, bytes calldata outputData, bytes32 outputDataHash)
+        public
+        returns (bool success)
+    {
         if (inferences[inferenceId].done) {
             return false;
         }
 
+        inferences[inferenceId].timestampResponse = block.timestamp;
         inferences[inferenceId].done = true;
+        inferences[inferenceId].responder = msg.sender;
         inferences[inferenceId].outputData = outputData;
         inferences[inferenceId].outputDataHash = outputDataHash;
 
-        emit InferenceResponded(
-            inferences[inferenceId].modelId,
-            inferenceId,
-            outputData,
-            outputDataHash
-        );
+        emit InferenceResponded(inferences[inferenceId].modelId, inferenceId, msg.sender, outputData, outputDataHash);
 
         success = true;
     }
 
     /// @notice Returns an inference.
-    function getInference(
-        uint256 inferenceId
-    ) public view returns (Inference memory inference) {
+    function getInference(uint256 inferenceId) public view returns (Inference memory inference) {
         return inferences[inferenceId];
     }
 }
