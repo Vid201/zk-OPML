@@ -56,6 +56,7 @@ contract ModelRegistry is IModelRegistry {
     }
 
     /// @notice Requests an inference for a model.
+    // TODO: inputData should be URI reference to IPFS
     function requestInference(uint256 modelId, bytes calldata inputData, bytes32 inputDataHash)
         public
         returns (uint256 inferenceId)
@@ -70,6 +71,7 @@ contract ModelRegistry is IModelRegistry {
     }
 
     /// @notice Responds to an inference request.
+    // TODO: outputData should be URI reference to IPFS
     function respondInference(uint256 inferenceId, bytes calldata outputData, bytes32 outputDataHash)
         public
         returns (bool success)
