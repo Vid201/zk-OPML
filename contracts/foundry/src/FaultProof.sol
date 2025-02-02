@@ -206,11 +206,16 @@ contract FaultProof {
     /// @dev This function will call SP1 verifier contract to verify ZKP of the operator execution.
     function resolveChallenge(uint256 challengeId) public {
         // ready to be resolved
-        // if (challenges[challengeId].ready) {
-
-        // } else {
-        //     require();
-        // }
+        if (challenges[challengeId].ready) {
+            // do the SP1 verification
+        } else {
+            // If the response window has elapsed, the challenge can be resolved
+            require(
+                challenges[challengeId].timestampAction + RESPONSE_WINDOW < block.timestamp,
+                "response time window has not expired"
+            );
+            
+        }
 
         // TODO
         // if time elapsed, the challenge can be resolved as well

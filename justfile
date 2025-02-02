@@ -11,6 +11,7 @@ input_data := "./testdata/variable_cnn/input.json"
 input_shape := "1,1,28,28"
 output_shape := "1,1,28,28"
 registry := "0x5fbdb2315678afecb367f032d93f642f64180aa3"
+verifier := ""
 model_id := "0"
 operator_index := "4"
 
@@ -35,6 +36,15 @@ ipfs-up:
 
 ipfs-down:
 	docker compose down
+
+deploy-create2:
+	cd contracts/create2 && \
+	./scripts/test.sh
+
+deploy-sp1-verifier:
+	cd contracts/foundry/lib/sp1-contracts/contracts && \
+	FOUNDRY_PROFILE=deploy forge script ./script/deploy/SP1VerifierGatewayPlonk.s.sol:SP1VerifierGatewayScript --private-key {{deployer}} --multi --broadcast && \
+	FOUNDRY_PROFILE=deploy forge script ./script/deploy/v4.0.0-rc.3/SP1VerifierPlonk.s.sol:SP1VerifierScript --private-key {{deployer}} --multi --broadcast
 
 deploy:
 	./target/release/zkopml-cli deploy \

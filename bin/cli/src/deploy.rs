@@ -61,7 +61,6 @@ pub async fn deploy(args: DeployArgs) -> anyhow::Result<()> {
             .context("ModelRegistry contract deployment failed")?;
     info!("{:?}", &model_registry_contract.address());
 
-    // TODO: deploy zkVM verifier contracts
     // TODO: deploy DisputeGameContracts
 
     Ok(())
