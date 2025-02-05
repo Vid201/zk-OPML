@@ -2,8 +2,9 @@ use foundry_compilers::{Project, ProjectPathsConfig};
 
 fn main() {
     // configure the project with all its paths, solc, cache etc.
+    let project_paths = ProjectPathsConfig::builder().build_with_root("foundry");
     let project = Project::builder()
-        .paths(ProjectPathsConfig::builder().build_with_root("foundry"))
+        .paths(project_paths)
         .build(Default::default())
         .expect("failed to build project");
 

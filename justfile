@@ -10,10 +10,13 @@ model := "./testdata/variable_cnn/network.onnx"
 input_data := "./testdata/variable_cnn/input.json"
 input_shape := "1,1,28,28"
 output_shape := "1,1,28,28"
-registry := "0x5fbdb2315678afecb367f032d93f642f64180aa3"
-verifier := ""
+verifier := "0x61EEd5eE968506eB27320FD776Fe14E4842b1990"
+registry := "0xcf7ed3acca5a467e9e704c703e8d87f634fb0fc9"
+fault_proof := "0xdc64a140aa3e981100a9beca4e685f962f0cf6c9"
 model_id := "0"
 operator_index := "4"
+challenge_window := "96000"
+response_window := "100"
 
 # default recipe to display help information
 default:
@@ -25,16 +28,26 @@ build:
 format:
 	cargo fmt --all
 
-kurtosis-up:
-	kurtosis run github.com/ethpandaops/ethereum-package --args-file kurtosis.yaml > kurtosis.log
+# kurtosis-up:
+#	kurtosis run github.com/ethpandaops/ethereum-package --args-file kurtosis.yaml > kurtosis.log
 
-kurtosis-down:
-	kurtosis clean -a
+# kurtosis-down:
+# 	kurtosis clean -a
 
-ipfs-up:
-	docker compose up -d
+# ipfs-up:
+# 	docker compose up -d
 
-ipfs-down:
+# ipfs-down:
+#	docker compose down
+
+setup-network:
+	docker compose up -d && \
+	sleep 5 && \
+	eth_accounts_response=$(curl -s -X POST -H "Content-Type: application/json" --data '{"jsonrpc":"2.0","method":"eth_accounts","params":[],"id":1}' http://127.0.0.1:8545) && \
+	account=$(echo "$eth_accounts_response" | jq -r '.result[0]') && \
+	curl -s -X POST -H "Content-Type: application/json" --data "{\"jsonrpc\":\"2.0\",\"method\":\"eth_sendTransaction\",\"params\":[{\"from\": \"$account\", \"to\": \"0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266\", \"value\": \"0x56BC75E2D63100000\"}],\"id\":1}" http://127.0.0.1:8545
+
+shutdown-network:
 	docker compose down
 
 deploy-create2:
@@ -51,6 +64,9 @@ deploy:
 		--eth-node-address {{eth_rpc}} \
 		--deployer-key {{deployer}} \
 		--owner-key {{owner}} \
+		--sp1-verifier-address {{verifier}} \
+		--challenge-window {{challenge_window}} \
+		--response-window {{response_window}} \
 		{{verbosity}}
 
 register:

@@ -3,6 +3,8 @@ pragma solidity ^0.8.24;
 
 import "./interfaces/IModelRegistry.sol";
 
+import {ISP1Verifier} from "sp1-contracts/src/ISP1Verifier.sol";
+
 /// @notice Enum representing the action of a challenge.
 enum ChallengeActor {
     /// @notice The responder is the actor.
@@ -48,11 +50,19 @@ struct OperatorExecution {
 }
 
 /// @notice Emitted when a challenge is created.
-event ChallengeCreated(uint256 challengeId, uint256 inferenceId, address responder, address challenger);
+event ChallengeCreated(
+    uint256 challengeId,
+    uint256 inferenceId,
+    address responder,
+    address challenger
+);
 
 /// @notice Emitted when new operator execution is proposed.
 event OperatorExecutionProposed(
-    uint256 challengeId, uint256 operatorPosition, bytes32 inputDataHash, bytes32 outputDataHash
+    uint256 challengeId,
+    uint256 operatorPosition,
+    bytes32 inputDataHash,
+    bytes32 outputDataHash
 );
 
 /// @notice Emitted when a challenge is resolved.
@@ -68,6 +78,12 @@ contract FaultProof {
     /// @notice The response window.
     uint256 public immutable RESPONSE_WINDOW;
 
+    /// @notice Address of the SP1 verifier contract.
+    address public immutable SP1_VERIFIER;
+
+    /// @notice SP1 program verification key.
+    bytes32 public immutable PROGRAM_VKEY;
+
     /// @notice Counter of challenges.
     uint256 public challengeCounter;
 
@@ -75,10 +91,15 @@ contract FaultProof {
     mapping(uint256 => Challenge) public challenges;
 
     /// @notice Mapping of all operator executions.
-    mapping(uint256 => mapping(uint256 => OperatorExecution)) public operatorExecutions;
+    mapping(uint256 => mapping(uint256 => OperatorExecution))
+        public operatorExecutions;
 
     /// @notice Returns the address of the model registry.
-    function modelRegistry() public view returns (IModelRegistry modelRegistry_) {
+    function modelRegistry()
+        public
+        view
+        returns (IModelRegistry modelRegistry_)
+    {
         modelRegistry_ = MODEL_REGISTRY;
     }
 
@@ -92,18 +113,31 @@ contract FaultProof {
         responseWindow_ = RESPONSE_WINDOW;
     }
 
-    constructor(IModelRegistry _modelRegistry, uint256 _challengeWindow, uint256 _responseWindow) {
+    constructor(
+        IModelRegistry _modelRegistry,
+        uint256 _challengeWindow,
+        uint256 _responseWindow,
+        address _sp1Verifier,
+        bytes32 _programVKey
+    ) {
         MODEL_REGISTRY = _modelRegistry;
         CHALLENGE_WINDOW = _challengeWindow;
         RESPONSE_WINDOW = _responseWindow;
+        SP1_VERIFIER = _sp1Verifier;
+        PROGRAM_VKEY = _programVKey;
     }
 
     /// @notice Creates/opens a new challenge.
-    function createChallenge(uint256 inferenceId) public returns (uint256 challengeId) {
+    function createChallenge(
+        uint256 inferenceId
+    ) public returns (uint256 challengeId) {
         Inference memory inference = MODEL_REGISTRY.getInference(inferenceId);
 
         require(inference.done, "inference not responded yet");
-        require(inference.timestampResponse + CHALLENGE_WINDOW > block.timestamp, "challenge window expired");
+        require(
+            inference.timestampResponse + CHALLENGE_WINDOW > block.timestamp,
+            "challenge window expired"
+        );
 
         uint256 modelId = inference.modelId;
         Model memory model = MODEL_REGISTRY.getModel(modelId);
@@ -125,45 +159,80 @@ contract FaultProof {
             false
         );
 
-        emit ChallengeCreated(challengeId, inferenceId, inference.responder, msg.sender);
+        emit ChallengeCreated(
+            challengeId,
+            inferenceId,
+            inference.responder,
+            msg.sender
+        );
     }
 
     /// @notice Challenger proposes an operator execution.
-    function proposeOperatorExecution(uint256 challengeId, bytes32 inputDataHash, bytes32 outputDataHash) public {
+    function proposeOperatorExecution(
+        uint256 challengeId,
+        bytes32 inputDataHash,
+        bytes32 outputDataHash
+    ) public {
         require(challengeId < challengeCounter, "challenge does not exist");
-        require(!challenges[challengeId].ready || !challenges[challengeId].resolved, "challenge is ready or resolved");
-        require(challenges[challengeId].challenger == msg.sender, "only challenger can propose operator execution");
-        require(challenges[challengeId].lastActor == ChallengeActor.RESPONDER, "last actor must be responder");
         require(
-            challenges[challengeId].timestampAction + RESPONSE_WINDOW > block.timestamp, "response time window expired"
+            !challenges[challengeId].ready || !challenges[challengeId].resolved,
+            "challenge is ready or resolved"
+        );
+        require(
+            challenges[challengeId].challenger == msg.sender,
+            "only challenger can propose operator execution"
+        );
+        require(
+            challenges[challengeId].lastActor == ChallengeActor.RESPONDER,
+            "last actor must be responder"
+        );
+        require(
+            challenges[challengeId].timestampAction + RESPONSE_WINDOW >
+                block.timestamp,
+            "response time window expired"
         );
 
-        uint256 mid = (challenges[challengeId].operatorLow + challenges[challengeId].operatorHigh) / 2;
+        uint256 mid = (challenges[challengeId].operatorLow +
+            challenges[challengeId].operatorHigh) / 2;
 
         if (mid == 0) {
             require(
-                inputDataHash == challenges[challengeId].inputDataHash, "input data hash does not match (condition 1)"
+                inputDataHash == challenges[challengeId].inputDataHash,
+                "input data hash does not match (condition 1)"
             );
-        } else if (mid > 0 && operatorExecutions[challengeId][mid - 1].outputDataHash != bytes32(0)) {
+        } else if (
+            mid > 0 &&
+            operatorExecutions[challengeId][mid - 1].outputDataHash !=
+            bytes32(0)
+        ) {
             require(
-                operatorExecutions[challengeId][mid - 1].outputDataHash == inputDataHash,
+                operatorExecutions[challengeId][mid - 1].outputDataHash ==
+                    inputDataHash,
                 "input data hash does not match (condition 2)"
             );
-        } else if (operatorExecutions[challengeId][mid + 1].outputDataHash != bytes32(0)) {
+        } else if (
+            operatorExecutions[challengeId][mid + 1].outputDataHash !=
+            bytes32(0)
+        ) {
             require(
-                operatorExecutions[challengeId][mid + 1].inputDataHash == outputDataHash,
+                operatorExecutions[challengeId][mid + 1].inputDataHash ==
+                    outputDataHash,
                 "input data hash does not match (condition 3)"
             );
         }
 
-        operatorExecutions[challengeId][mid] = OperatorExecution(inputDataHash, outputDataHash);
+        operatorExecutions[challengeId][mid] = OperatorExecution(
+            inputDataHash,
+            outputDataHash
+        );
 
         challenges[challengeId].lastActor = ChallengeActor.CHALLENGER;
         challenges[challengeId].timestampAction = block.timestamp;
 
         emit OperatorExecutionProposed(
             challengeId,
-            (challenges[challengeId].operatorLow + challenges[challengeId].operatorHigh) / 2,
+            (challenges[challengeId].operatorLow +
+                challenges[challengeId].operatorHigh) / 2,
             inputDataHash,
             outputDataHash
         );
@@ -174,16 +243,32 @@ contract FaultProof {
     /// 1. Agree with the input/output data hash. - go right
     /// 2. Disagree with the input data hash. - go left
     /// 3. Agree with input data hash, but disagree with output data hash. - propose different operator execution
-    function respondOperatorExecution(uint256 challengeId, bool input, bool output) public {
+    function respondOperatorExecution(
+        uint256 challengeId,
+        bool input,
+        bool output
+    ) public {
         require(challengeId < challengeCounter, "challenge does not exist");
-        require(!challenges[challengeId].ready || !challenges[challengeId].resolved, "challenge is ready or resolved");
-        require(challenges[challengeId].responder == msg.sender, "only responder can to respond operator execution");
-        require(challenges[challengeId].lastActor == ChallengeActor.CHALLENGER, "last actor must be challenger");
         require(
-            challenges[challengeId].timestampAction + RESPONSE_WINDOW > block.timestamp, "response time window expired"
+            !challenges[challengeId].ready || !challenges[challengeId].resolved,
+            "challenge is ready or resolved"
+        );
+        require(
+            challenges[challengeId].responder == msg.sender,
+            "only responder can to respond operator execution"
+        );
+        require(
+            challenges[challengeId].lastActor == ChallengeActor.CHALLENGER,
+            "last actor must be challenger"
+        );
+        require(
+            challenges[challengeId].timestampAction + RESPONSE_WINDOW >
+                block.timestamp,
+            "response time window expired"
         );
 
-        uint256 operatorMid = (challenges[challengeId].operatorLow + challenges[challengeId].operatorHigh) / 2;
+        uint256 operatorMid = (challenges[challengeId].operatorLow +
+            challenges[challengeId].operatorHigh) / 2;
 
         // 1.
         if (input && output) {
@@ -211,10 +296,10 @@ contract FaultProof {
         } else {
             // If the response window has elapsed, the challenge can be resolved
             require(
-                challenges[challengeId].timestampAction + RESPONSE_WINDOW < block.timestamp,
+                challenges[challengeId].timestampAction + RESPONSE_WINDOW <
+                    block.timestamp,
                 "response time window has not expired"
             );
-            
         }
 
         // TODO
