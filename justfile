@@ -14,7 +14,7 @@ verifier := "0x61EEd5eE968506eB27320FD776Fe14E4842b1990"
 registry := "0xcf7ed3acca5a467e9e704c703e8d87f634fb0fc9"
 fault_proof := "0xdc64a140aa3e981100a9beca4e685f962f0cf6c9"
 model_id := "0"
-operator_index := "4"
+operator_index := "0"
 challenge_window := "96000"
 response_window := "100"
 

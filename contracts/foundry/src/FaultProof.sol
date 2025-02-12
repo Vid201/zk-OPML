@@ -39,6 +39,8 @@ struct Challenge {
     bool ready;
     /// @notice Flag indicating if the challenge is resolved.
     bool resolved;
+    /// @notice Winning actor;
+    ChallengeActor winner;
 }
 
 /// @notice Struct representing a proposed operator execution.
@@ -50,19 +52,11 @@ struct OperatorExecution {
 }
 
 /// @notice Emitted when a challenge is created.
-event ChallengeCreated(
-    uint256 challengeId,
-    uint256 inferenceId,
-    address responder,
-    address challenger
-);
+event ChallengeCreated(uint256 challengeId, uint256 inferenceId, address responder, address challenger);
 
 /// @notice Emitted when new operator execution is proposed.
 event OperatorExecutionProposed(
-    uint256 challengeId,
-    uint256 operatorPosition,
-    bytes32 inputDataHash,
-    bytes32 outputDataHash
+    uint256 challengeId, uint256 operatorPosition, bytes32 inputDataHash, bytes32 outputDataHash
 );
 
 /// @notice Emitted when a challenge is resolved.
@@ -91,15 +85,10 @@ contract FaultProof {
     mapping(uint256 => Challenge) public challenges;
 
     /// @notice Mapping of all operator executions.
-    mapping(uint256 => mapping(uint256 => OperatorExecution))
-        public operatorExecutions;
+    mapping(uint256 => mapping(uint256 => OperatorExecution)) public operatorExecutions;
 
     /// @notice Returns the address of the model registry.
-    function modelRegistry()
-        public
-        view
-        returns (IModelRegistry modelRegistry_)
-    {
+    function modelRegistry() public view returns (IModelRegistry modelRegistry_) {
         modelRegistry_ = MODEL_REGISTRY;
     }
 
@@ -128,16 +117,11 @@ contract FaultProof {
     }
 
     /// @notice Creates/opens a new challenge.
-    function createChallenge(
-        uint256 inferenceId
-    ) public returns (uint256 challengeId) {
+    function createChallenge(uint256 inferenceId) public returns (uint256 challengeId) {
         Inference memory inference = MODEL_REGISTRY.getInference(inferenceId);
 
         require(inference.done, "inference not responded yet");
-        require(
-            inference.timestampResponse + CHALLENGE_WINDOW > block.timestamp,
-            "challenge window expired"
-        );
+        require(inference.timestampResponse + CHALLENGE_WINDOW > block.timestamp, "challenge window expired");
 
         uint256 modelId = inference.modelId;
         Model memory model = MODEL_REGISTRY.getModel(modelId);
@@ -156,83 +140,53 @@ contract FaultProof {
             inference.inputDataHash,
             inference.outputDataHash,
             false,
-            false
+            false,
+            ChallengeActor.RESPONDER
         );
 
-        emit ChallengeCreated(
-            challengeId,
-            inferenceId,
-            inference.responder,
-            msg.sender
-        );
+        emit ChallengeCreated(challengeId, inferenceId, inference.responder, msg.sender);
     }
 
     /// @notice Challenger proposes an operator execution.
-    function proposeOperatorExecution(
-        uint256 challengeId,
-        bytes32 inputDataHash,
-        bytes32 outputDataHash
-    ) public {
+    function proposeOperatorExecution(uint256 challengeId, bytes32 inputDataHash, bytes32 outputDataHash) public {
         require(challengeId < challengeCounter, "challenge does not exist");
+        require(!challenges[challengeId].ready || !challenges[challengeId].resolved, "challenge is ready or resolved");
+        require(challenges[challengeId].challenger == msg.sender, "only challenger can propose operator execution");
+        require(challenges[challengeId].lastActor == ChallengeActor.RESPONDER, "last actor must be responder");
         require(
-            !challenges[challengeId].ready || !challenges[challengeId].resolved,
-            "challenge is ready or resolved"
-        );
-        require(
-            challenges[challengeId].challenger == msg.sender,
-            "only challenger can propose operator execution"
-        );
-        require(
-            challenges[challengeId].lastActor == ChallengeActor.RESPONDER,
-            "last actor must be responder"
-        );
-        require(
-            challenges[challengeId].timestampAction + RESPONSE_WINDOW >
-                block.timestamp,
-            "response time window expired"
+            challenges[challengeId].timestampAction + RESPONSE_WINDOW > block.timestamp, "response time window expired"
         );
 
-        uint256 mid = (challenges[challengeId].operatorLow +
-            challenges[challengeId].operatorHigh) / 2;
+        uint256 mid = (challenges[challengeId].operatorLow + challenges[challengeId].operatorHigh) / 2;
 
         if (mid == 0) {
             require(
-                inputDataHash == challenges[challengeId].inputDataHash,
-                "input data hash does not match (condition 1)"
+                inputDataHash == challenges[challengeId].inputDataHash, "input data hash does not match (condition 1)"
             );
-        } else if (
-            mid > 0 &&
-            operatorExecutions[challengeId][mid - 1].outputDataHash !=
-            bytes32(0)
-        ) {
+        } else if (mid > 0 && operatorExecutions[challengeId][mid - 1].outputDataHash != bytes32(0)) {
             require(
-                operatorExecutions[challengeId][mid - 1].outputDataHash ==
-                    inputDataHash,
+                operatorExecutions[challengeId][mid - 1].outputDataHash == inputDataHash,
                 "input data hash does not match (condition 2)"
             );
-        } else if (
-            operatorExecutions[challengeId][mid + 1].outputDataHash !=
-            bytes32(0)
-        ) {
+        } else if (operatorExecutions[challengeId][mid + 1].inputDataHash != bytes32(0)) {
             require(
-                operatorExecutions[challengeId][mid + 1].inputDataHash ==
-                    outputDataHash,
+                operatorExecutions[challengeId][mid + 1].inputDataHash == outputDataHash,
                 "input data hash does not match (condition 3)"
             );
         }
 
-        operatorExecutions[challengeId][mid] = OperatorExecution(
-            inputDataHash,
-            outputDataHash
-        );
+        operatorExecutions[challengeId][mid] = OperatorExecution(inputDataHash, outputDataHash);
 
         challenges[challengeId].lastActor = ChallengeActor.CHALLENGER;
         challenges[challengeId].timestampAction = block.timestamp;
 
+        if (challenges[challengeId].operatorHigh - challenges[challengeId].operatorLow == 1) {
+            challenges[challengeId].ready = true;
+        }
+
         emit OperatorExecutionProposed(
             challengeId,
-            (challenges[challengeId].operatorLow +
-                challenges[challengeId].operatorHigh) / 2,
+            (challenges[challengeId].operatorLow + challenges[challengeId].operatorHigh) / 2,
             inputDataHash,
             outputDataHash
         );
@@ -243,32 +197,16 @@ contract FaultProof {
     /// 1. Agree with the input/output data hash. - go right
     /// 2. Disagree with the input data hash. - go left
     /// 3. Agree with input data hash, but disagree with output data hash. - propose different operator execution
-    function respondOperatorExecution(
-        uint256 challengeId,
-        bool input,
-        bool output
-    ) public {
+    function respondOperatorExecution(uint256 challengeId, bool input, bool output) public {
         require(challengeId < challengeCounter, "challenge does not exist");
+        require(!challenges[challengeId].ready || !challenges[challengeId].resolved, "challenge is ready or resolved");
+        require(challenges[challengeId].responder == msg.sender, "only responder can to respond operator execution");
+        require(challenges[challengeId].lastActor == ChallengeActor.CHALLENGER, "last actor must be challenger");
         require(
-            !challenges[challengeId].ready || !challenges[challengeId].resolved,
-            "challenge is ready or resolved"
-        );
-        require(
-            challenges[challengeId].responder == msg.sender,
-            "only responder can to respond operator execution"
-        );
-        require(
-            challenges[challengeId].lastActor == ChallengeActor.CHALLENGER,
-            "last actor must be challenger"
-        );
-        require(
-            challenges[challengeId].timestampAction + RESPONSE_WINDOW >
-                block.timestamp,
-            "response time window expired"
+            challenges[challengeId].timestampAction + RESPONSE_WINDOW > block.timestamp, "response time window expired"
         );
 
-        uint256 operatorMid = (challenges[challengeId].operatorLow +
-            challenges[challengeId].operatorHigh) / 2;
+        uint256 operatorMid = (challenges[challengeId].operatorLow + challenges[challengeId].operatorHigh) / 2;
 
         // 1.
         if (input && output) {
@@ -287,23 +225,72 @@ contract FaultProof {
         challenges[challengeId].timestampAction = block.timestamp;
     }
 
-    /// @notice Can be called by anyone, but will usually be called by challenger or responder.
+    /// @notice Can be called by anyone, but will usually be called by challenger.
     /// @dev This function will call SP1 verifier contract to verify ZKP of the operator execution.
-    function resolveChallenge(uint256 challengeId) public {
-        // ready to be resolved
-        if (challenges[challengeId].ready) {
-            // do the SP1 verification
-        } else {
-            // If the response window has elapsed, the challenge can be resolved
-            require(
-                challenges[challengeId].timestampAction + RESPONSE_WINDOW <
-                    block.timestamp,
-                "response time window has not expired"
-            );
+    function resolveOpenChallenge(uint256 challengeId, bytes calldata publicValues, bytes calldata proofBytes) public {
+        require(challenges[challengeId].ready, "challenge not ready to be resolved yet");
+        require(!challenges[challengeId].resolved, "challenge already resolved");
+
+        // SP1 verification
+        ISP1Verifier(SP1_VERIFIER).verifyProof(PROGRAM_VKEY, publicValues, proofBytes);
+
+        // Verify the public commitments of the proof
+        (bytes32 merkleRoot, bytes memory leafIndices, bytes32 inputDataHash, bytes32 outputDataHash) =
+            abi.decode(publicValues, (bytes32, bytes, bytes32, bytes32));
+
+        uint256 mid = (challenges[challengeId].operatorLow + challenges[challengeId].operatorHigh) / 2;
+        uint256 modelId = MODEL_REGISTRY.getInference(challenges[challengeId].inferenceId).modelId;
+        Model memory model = MODEL_REGISTRY.getModel(modelId);
+
+        // Verify merkle root
+        require(merkleRoot == model.root, "merkle root does not match");
+
+        // Verify leaf indices
+        // TODO: support execution of multiple ONNX operators
+        uint256 leaf_index;
+        assembly {
+            let bytes_h := mload(add(leafIndices, 0))
+            leaf_index := bytes_h
+        }
+        require(leaf_index == mid, "leaf index does not match current ONNX operator");
+
+        // Verify input data hash
+        require(
+            operatorExecutions[challengeId][mid].inputDataHash != bytes32(0)
+                && inputDataHash == operatorExecutions[challengeId][mid].inputDataHash,
+            "input data hash does not match"
+        );
+
+        // Verify output data hash
+        require(
+            operatorExecutions[challengeId][mid].outputDataHash != bytes32(0)
+                && outputDataHash == operatorExecutions[challengeId][mid].outputDataHash,
+            "output data hash does not match"
+        );
+
+        challenges[challengeId].winner = ChallengeActor.CHALLENGER;
+        // TODO: slash the responder
+
+        challenges[challengeId].resolved = true;
+    }
+
+    // This can be called by responder to resolve the expired challenge.
+    function resolveExpiredChallenge(uint256 challengeId) public {
+        require(
+            challenges[challengeId].timestampAction + RESPONSE_WINDOW > block.timestamp,
+            "challenge window not expired yet"
+        );
+        require(!challenges[challengeId].resolved, "challenge already resolved");
+
+        if (challenges[challengeId].lastActor == ChallengeActor.RESPONDER || challenges[challengeId].ready) {
+            challenges[challengeId].winner = ChallengeActor.RESPONDER;
+            // TODO: slash the challenger
+        }
+        {
+            challenges[challengeId].winner = ChallengeActor.CHALLENGER;
+            // TODO: slash the responder
         }
 
-        // TODO
-        // if time elapsed, the challenge can be resolved as well
-        // Challenge is resolved, perform necessary actions
+        challenges[challengeId].resolved = true;
     }
 }

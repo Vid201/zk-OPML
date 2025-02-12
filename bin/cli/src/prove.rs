@@ -1,3 +1,4 @@
+use alloy::hex::ToHexExt;
 use candle_core::Tensor;
 use candle_onnx::eval::simple_eval_one;
 use sp1_sdk::{include_elf, network::FulfillmentStrategy, Prover, ProverClient, SP1Stdin};
@@ -97,14 +98,13 @@ pub async fn prove(args: ProveArgs) -> anyhow::Result<()> {
         simple_eval_one(&node, &mut inputs)?;
     }
     let node = model.get_node(node_index).unwrap();
-    inputs.retain(|k, _| node.input.contains(k));
-    stdin.write(&inputs);
-
     let mut input_hashes = HashMap::new();
     for (name, tensor) in inputs.iter() {
         let hash = tensor_hash(tensor);
         input_hashes.insert(name.clone(), hash);
     }
+    inputs.retain(|k: &String, _| node.input.contains(k));
+    stdin.write(&inputs);
     stdin.write(&input_hashes);
 
     stdin.write(&node);
@@ -123,6 +123,8 @@ pub async fn prove(args: ProveArgs) -> anyhow::Result<()> {
             report.total_instruction_count()
         );
 
+        info!("Raw public values: {:?}", public_values.raw());
+
         let merkle_root_ret = public_values.read::<MerkleTreeHash>();
         let leaf_indices_ret = public_values.read::<Vec<usize>>();
         let inputs_hash = public_values.read::<[u8; 32]>();
@@ -131,8 +133,8 @@ pub async fn prove(args: ProveArgs) -> anyhow::Result<()> {
         info!("Returned public values:");
         info!("Merkle root: {:?}", merkle_root_ret);
         info!("Leaf indices: {:?}", leaf_indices_ret);
-        info!("Inputs hash: {:?}", inputs_hash);
-        info!("Outputs hash: {:?}", outputs_hash);
+        info!("Inputs hash: {:?}", inputs_hash.encode_hex());
+        info!("Outputs hash: {:?}", outputs_hash.encode_hex());
     } else {
         info!("Using the network SP1 prover.");
         let client = ProverClient::builder().network().build();
@@ -147,6 +149,8 @@ pub async fn prove(args: ProveArgs) -> anyhow::Result<()> {
             report.total_instruction_count()
         );
 
+        info!("Raw public values: {:?}", public_values.raw());
+
         let merkle_root_ret = public_values.read::<MerkleTreeHash>();
         let leaf_indices_ret = public_values.read::<Vec<usize>>();
         let inputs_hash = public_values.read::<[u8; 32]>();
@@ -155,8 +159,8 @@ pub async fn prove(args: ProveArgs) -> anyhow::Result<()> {
         info!("Returned public values:");
         info!("Merkle root: {:?}", merkle_root_ret);
         info!("Leaf indices: {:?}", leaf_indices_ret);
-        info!("Inputs hash: {:?}", inputs_hash);
-        info!("Outputs hash: {:?}", outputs_hash);
+        info!("Inputs hash: {:?}", inputs_hash.encode_hex());
+        info!("Outputs hash: {:?}", outputs_hash.encode_hex());
 
         let (pk, vk) = client.setup(ELF);
         info!("generated keys (setup)");

@@ -1,10 +1,23 @@
-use foundry_compilers::{Project, ProjectPathsConfig};
+use foundry_compilers::{
+    artifacts::Settings, multi::MultiCompilerSettings, solc::SolcSettings, Project,
+    ProjectPathsConfig,
+};
 
 fn main() {
     // configure the project with all its paths, solc, cache etc.
     let project_paths = ProjectPathsConfig::builder().build_with_root("foundry");
+    let mut settings = MultiCompilerSettings::default();
+    let solc_settings = SolcSettings {
+        settings: Settings {
+            via_ir: Some(true),
+            ..Default::default()
+        },
+        ..Default::default()
+    };
+    settings.solc = solc_settings;
     let project = Project::builder()
         .paths(project_paths)
+        .settings(settings)
         .build(Default::default())
         .expect("failed to build project");
 
