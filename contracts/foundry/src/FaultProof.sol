@@ -173,17 +173,20 @@ contract FaultProof {
             require(
                 inputDataHash == challenges[challengeId].inputDataHash, "input data hash does not match (condition 1)"
             );
-        } else if (mid == model.numOperators - 1) {
+        }
+        if (mid == model.numOperators - 1) {
             require(
                 outputDataHash != challenges[challengeId].outputDataHash,
                 "output data hash must not match (condition 2)"
             );
-        } else if (mid > 0 && operatorExecutions[challengeId][mid - 1].outputDataHash != bytes32(0)) {
+        }
+        if (mid > 0 && operatorExecutions[challengeId][mid - 1].outputDataHash != bytes32(0)) {
             require(
                 operatorExecutions[challengeId][mid - 1].outputDataHash == inputDataHash,
                 "input data hash does not match (condition 3)"
             );
-        } else if (operatorExecutions[challengeId][mid + 1].inputDataHash != bytes32(0)) {
+        }
+        if (operatorExecutions[challengeId][mid + 1].inputDataHash != bytes32(0)) {
             require(
                 operatorExecutions[challengeId][mid + 1].inputDataHash == outputDataHash,
                 "input data hash does not match (condition 4)"
@@ -195,7 +198,7 @@ contract FaultProof {
         challenges[challengeId].lastActor = ChallengeActor.CHALLENGER;
         challenges[challengeId].timestampAction = block.timestamp;
 
-        if (challenges[challengeId].operatorHigh - challenges[challengeId].operatorLow == 1) {
+        if (challenges[challengeId].operatorHigh - challenges[challengeId].operatorLow == 0) {
             challenges[challengeId].ready = true;
         }
 
@@ -290,7 +293,7 @@ contract FaultProof {
     // This can be called by responder to resolve the expired challenge.
     function resolveExpiredChallenge(uint256 challengeId) public {
         require(
-            challenges[challengeId].timestampAction + RESPONSE_WINDOW > block.timestamp,
+            challenges[challengeId].timestampAction + RESPONSE_WINDOW < block.timestamp,
             "challenge window not expired yet"
         );
         require(!challenges[challengeId].resolved, "challenge already resolved");
@@ -298,8 +301,7 @@ contract FaultProof {
         if (challenges[challengeId].lastActor == ChallengeActor.RESPONDER || challenges[challengeId].ready) {
             challenges[challengeId].winner = ChallengeActor.RESPONDER;
             // TODO: slash the challenger
-        }
-        {
+        } else {
             challenges[challengeId].winner = ChallengeActor.CHALLENGER;
             // TODO: slash the responder
         }

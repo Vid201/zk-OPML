@@ -95,11 +95,144 @@ contract FaultProofTest is Test {
     }
 
     // Submitter did not correctly compute the second ONNX operator.
-    function test_FaultProofStep2() public {}
+    function test_FaultProofStep2() public {
+        // respond inference (wrong output)
+        modelRegistry.respondInference(
+            0,
+            hex"4a1c883e4892983e79a1a9bd8d289ebefa1f7ebe6234f43deb8a433eae4c85bec73b3e3ddcf11ebe266d0ebec2e9b53ebc5df1bd61b0fabe0dc74e3e9e8158be32b86c3d3ce0d1bd515b013db4d9433df80ebcbc8bfcd53dfc6d53be8378c9bd3ff9173d1e32fa3ca81f3dbe22cc953e5faaa23d1fa682be22b126bdd3362c3d06dd983ef0ca39bee8a62d3c051e8b3e072fcfbc2e7ffabd74e9d93d6e15083d0efcb0be840b76bc09ea603cd4aa763d3cc7cd3c9c0eff3d0aa1013ecdc70a3e11b8e5bc702a73bd31f0373f027e363eeaf5803e1134e0bea739a4bdeecc633e2ba6533d34deb43d823244bf327ed63da0a0e03d507e85be61c80b3d82d4fe3d4888c7bd1c9e77bc4f3abcbcb8233bbcd4f1adbe17c11d3ea4cc31bd1630a1bcf0c2d0bd7c2592be9d2c7ebe0b4d81bc9e5521be2b3bc4bd0f50bf3dda60923eee321dbc75253cbeac76ed3d9bbed23d40063fbbd88d47be682a403ec140ad3d385d48bd60e3123e34b7f03ea869ba3d8e22e03c5bd1283ee0ecefbdd800363d7e8a003e8445903eda0afbbd0ae13d3e",
+            bytes32(0x86f1c59c8509db81bd563c58bb57d487f9cb8f23a1bc4d2b4cf6614977fa94d7)
+        );
 
-    // Submitter did not correctly compute the zero ONNX operator.
-    function test_FaultProofStep0() public {}
+        // create challenge - CHALLENGER
+        faultProof.createChallenge(0);
 
-    // Submitter correctly computed the ONNX operators. Challenger says the output is incorrect, but the input to the last ONNX operator is correct.
-    function test_ChallengeFail() public {}
+        // propose operator execution - CHALLENGER (operator 2)
+        faultProof.proposeOperatorExecution(
+            0,
+            bytes32(0x95541f66f0e41e0c1171aa42ec191eca98a6d903132fb5c56247999d5d1c846b),
+            bytes32(0x6d3164945367c04f13830f4ba37d644bdcc907e0144241a03a0b2eddac1402c4)
+        );
+
+        // respond operator execution - SUBMITTER
+        faultProof.respondOperatorExecution(0, true, false);
+
+        // resolve challenge - CHALLENGER
+        faultProof.resolveOpenChallenge(
+            0,
+            hex"f0c4b404383d6a9cf9cd220237b3c5dad9e410e7fdca48ac58f66e94b5c316240100000000000000020000000000000095541f66f0e41e0c1171aa42ec191eca98a6d903132fb5c56247999d5d1c846b6d3164945367c04f13830f4ba37d644bdcc907e0144241a03a0b2eddac1402c4",
+            hex"1b34fe111811160da2539fcc0f18a46560e87edf0463651475e3188df365f2db0185095c16978146a97f7c67a4613ca7813713b3c9d0ef74573bc53f6479eff18e7559dc0fd9b9a70adae8e1234ec5e97ab0f3bdf4b81718c70e220df454f17dccdfbae32b5510787a93ff0a6de93025f46bd535ec6d703c4132ffe1f6901c73243a42181fe698ab33cac5fb2ead9b699a6df9d24b5a97d60e908594feb4aabdaff123cb08e8a700dc37376efe36e98ea7852300299102c7975a688d743e82229d08fc7f28568dc96b7840e2a970225410d0f55fdb3980efc4a1fb9e89f1e6aeb088c44d10d6baa626261e63079f1d9aae312e068a8719bfb025cb29c462a023e65a156c0c6e333d2ade70ac4f0d42b1c621bcd540f1c75ac79392902eefc7df34a483342a6e15280fb267f664cdd7d6e5fc37f12a18538bdd66d5b7d207857c629819451bd014bbc85f117e10efa6e6c5b8d29b3ffcb8f4c01fe206972c01e903fe85040e4448c80bdab2595638bed8a791413c859c52e326754380d9a6201e9992589f119873f5208c9408bd88e73205890932d568c1c7c6a2ec0b904b540d8c43243c01f008e5cdf45a1cec118d05bbd0e4eb46db6a964444df2d8633b3c68d238132023dc64b79809ac0674fa1553269bf5a190730f555114cc6dda2a8e18807055004c9f69826d5b89b110aff9212f324c5c6c86891fbfdffa0d4da602d5f19e21b15dd178cf2f932fd21aa04f9be08fc18ee73ce73e4a01df98ba027bf669c392e284e5952f80ebda5ed959fc12766000d97dd9e0b18c043a0efeab7b5bc4aa75704ac65fea6b9450d255ea831b23c829757f2ac44bc720d7cf74b855d85ce18c72751f7fac65eba474d42d83fcbe51f859296774debbbbd2ae9b0c5cf3e17c9ea06e139f6b183118b68f8710444086d795108bc2d697e8e806f34ada7d1383406108138a98de46f9b73b508f114cba9a1939bb34abdc159552a4c1f15505fa0be25a6c475f00ac446714be6346fac8c3cda8573e68b50e19aa3ab83ea43f36adb2e1b49b41786f7c3faef7dd2c93b6fa3c1dd2b56fa39e30dc458aebfbbe2d37326eec56330a521242c28c73747654e22b06319baf1843eca032ac43bcc5ca607136ef28d0e0438260ee221dd1bbcffb37c4b9712794f910b20525256b58a88132cb02460a18a84e25d6d92436a3b8778f817defa6cfdc481f701fbf2d9f64607"
+        );
+
+        assertEq(uint256(faultProof.getChallenge(0).winner), uint256(ChallengeActor.CHALLENGER));
+        assertEq(faultProof.getChallenge(0).resolved, true);
+    }
+
+    // Submitter did not correctly compute the first ONNX operator.
+    function test_FaultProofStep1() public {
+        // respond inference (wrong output)
+        modelRegistry.respondInference(
+            0,
+            hex"4a1c883e4892983e79a1a9bd8d289ebefa1f7ebe6234f43deb8a433eae4c85bec73b3e3ddcf11ebe266d0ebec2e9b53ebc5df1bd61b0fabe0dc74e3e9e8158be32b86c3d3ce0d1bd515b013db4d9433df80ebcbc8bfcd53dfc6d53be8378c9bd3ff9173d1e32fa3ca81f3dbe22cc953e5faaa23d1fa682be22b126bdd3362c3d06dd983ef0ca39bee8a62d3c051e8b3e072fcfbc2e7ffabd74e9d93d6e15083d0efcb0be840b76bc09ea603cd4aa763d3cc7cd3c9c0eff3d0aa1013ecdc70a3e11b8e5bc702a73bd31f0373f027e363eeaf5803e1134e0bea739a4bdeecc633e2ba6533d34deb43d823244bf327ed63da0a0e03d507e85be61c80b3d82d4fe3d4888c7bd1c9e77bc4f3abcbcb8233bbcd4f1adbe17c11d3ea4cc31bd1630a1bcf0c2d0bd7c2592be9d2c7ebe0b4d81bc9e5521be2b3bc4bd0f50bf3dda60923eee321dbc75253cbeac76ed3d9bbed23d40063fbbd88d47be682a403ec140ad3d385d48bd60e3123e34b7f03ea869ba3d8e22e03c5bd1283ee0ecefbdd800363d7e8a003e8445903eda0afbbd0ae13d3e",
+            bytes32(0x86f1c59c8509db81bd563c58bb57d487f9cb8f23a1bc4d2b4cf6614977fa94d7)
+        );
+
+        // create challenge - CHALLENGER
+        faultProof.createChallenge(0);
+
+        // propose operator execution - CHALLENGER (operator 2)
+        faultProof.proposeOperatorExecution(
+            0,
+            bytes32(0x95541f66f0e41e0c1171aa42ec191eca98a6d903132fb5c56247999d5d1c846b),
+            bytes32(0x6d3164945367c04f13830f4ba37d644bdcc907e0144241a03a0b2eddac1402c4)
+        );
+
+        // respond operator execution - SUBMITTER
+        faultProof.respondOperatorExecution(0, false, false);
+
+        // propose operator execution - CHALLENGER (operator 0)
+        faultProof.proposeOperatorExecution(
+            0,
+            bytes32(0x923edd4e1f7ea9f2641c09e4dd2bf672e09970eec48cac0f484c3f6657f7c044),
+            bytes32(0xaaa40114be972f2938b2d45de293ca5942d247aadfc627e6caea6fc9f8dbae96)
+        );
+
+        // respond operator execution - SUBMITTER
+        faultProof.respondOperatorExecution(0, true, true);
+
+        // propose operator execution - CHALLENGER (operator 1)
+        faultProof.proposeOperatorExecution(
+            0,
+            bytes32(0xaaa40114be972f2938b2d45de293ca5942d247aadfc627e6caea6fc9f8dbae96),
+            bytes32(0x95541f66f0e41e0c1171aa42ec191eca98a6d903132fb5c56247999d5d1c846b)
+        );
+
+        // resolve challenge - CHALLENGER
+        faultProof.resolveOpenChallenge(
+            0,
+            hex"f0c4b404383d6a9cf9cd220237b3c5dad9e410e7fdca48ac58f66e94b5c3162401000000000000000100000000000000aaa40114be972f2938b2d45de293ca5942d247aadfc627e6caea6fc9f8dbae9695541f66f0e41e0c1171aa42ec191eca98a6d903132fb5c56247999d5d1c846b",
+            hex"1b34fe1103e27e7760a40818ee577fc0fa2b14adb7447c52a8635e175c31ee5036f0674912f5f60bf932816ff35ae62454b7c214447677a98dbf48775c735253afb721311e5b3f37cf66eb2ea2c90fd49fb2fc846a3a6e7cd31b4430ccaeb71fd822b7c6129fdd4a07a104df777ac3a1c1aeb01765aa84aca4bbb0d7e2da39cfa7f9d47f0d0edabf6a462c05372ea1a4449885342a9d5023597f12a1cfa4dda1188831390b1057653ed2f1bbdf44a8795f3198a088ef3d1a80268a67d306134da3c5162d1dc2e7391c955da5d1bfa652057c72be9af490b16e28cf7189f02a05c9b53de211a83c45104c2419d4a180e130cf2a5197f5e1c808c848f1b95b9c39dabab059114dceb9c435c1292d3d2a1ffcff5a63b5c9a40a061018d4a51131f2632257bc062dccd53cf48ad7fb83e2853b323e252434b511fb0da9177e4d783801910c940dc3fa7b9ffb8560463285ebd4bd67863069179c2dc36c787dfac162a04d76901bf2b3a1291341bf16d10871aa49ac42587edfa46fe9f6f3921e2be8426bf5462c9a810512470c4d9f9e6ed76319d83cb00a625541e4efe84f0e1721fa37a6442eb7ffc451ed29d83ca45a888a457085a3a4ffdab095cd750a5736a6e2677e0910449785bc12c7a969ee7cbff5dfd6b6562c805c529af0c58b0c7dfb06a77b0c2d11d2e4a7c38d198dbe563fcc4dd1f869c46cdb1e4dbf5f71388fbf0e4471111fa35202d7c3524da6ad7d2259af61986624bdac616314fa1c16d1c14f245ff406d7026f21e97c043500b26ef5e3995ac37b05b148fa2d5d7fe420d877918fc21e7fe7884f0aa08fa299e1ef441842dd95b4059ca0ec1fee4aac3d701d8f5ed926a19e608995adb5a63b1a53311142c0fbdf8f22e32e0e30c16be0794e087bb20907cb1cdd44b9724b06719747953ab9444968a899f1b6d8cab995b842c752d22a70a588e79f5aca8ce0fd8eb65abbc68add0ed53f604f603b42c0ee76c4f624188113831aafc0a735871fe5ee9048cd8fb5fe100f8898fd29b65240d6e780d41bd1bb27a512c8ab4d2435148f2e8abc61550aa8a50802744d85a496d6def9452e6d07e7c66310c31f262edab7645e8b6f0456c4f7b39c7d846d6a4cf07abd3f285a79c0136de6e3fce2d4709cecbe6af90909ad99ed9a3c7ba1cd97429a68f82abc8c085cd559251f74065cdd63874d183910c999d27d93b4f060f4e68f385c"
+        );
+
+        assertEq(uint256(faultProof.getChallenge(0).winner), uint256(ChallengeActor.CHALLENGER));
+        assertEq(faultProof.getChallenge(0).resolved, true);
+    }
+
+    // Submitter correctly computed the ONNX operators. Challenger says the output is incorrect, but cannot complete the challenge.
+    function test_ChallengeFail() public {
+        // respond inference (wrong output)
+        modelRegistry.respondInference(
+            0,
+            hex"4a1c883e4892983e79a1a9bd8d289ebefa1f7ebe6234f43deb8a433eae4c85bec73b3e3ddcf11ebe266d0ebec2e9b53ebc5df1bd61b0fabe0dc74e3e9e8158be32b86c3d3ce0d1bd515b013db4d9433df80ebcbc8bfcd53dfc6d53be8378c9bd3ff9173d1e32fa3ca81f3dbe22cc953e5faaa23d1fa682be22b126bdd3362c3d06dd983ef0ca39bee8a62d3c051e8b3e072fcfbc2e7ffabd74e9d93d6e15083d0efcb0be840b76bc09ea603cd4aa763d3cc7cd3c9c0eff3d0aa1013ecdc70a3e11b8e5bc702a73bd31f0373f027e363eeaf5803e1134e0bea739a4bdeecc633e2ba6533d34deb43d823244bf327ed63da0a0e03d507e85be61c80b3d82d4fe3d4888c7bd1c9e77bc4f3abcbcb8233bbcd4f1adbe17c11d3ea4cc31bd1630a1bcf0c2d0bd7c2592be9d2c7ebe0b4d81bc9e5521be2b3bc4bd0f50bf3dda60923eee321dbc75253cbeac76ed3d9bbed23d40063fbbd88d47be682a403ec140ad3d385d48bd60e3123e34b7f03ea869ba3d8e22e03c5bd1283ee0ecefbdd800363d7e8a003e8445903eda0afbbd0ae13d3e",
+            bytes32(0x86e1c59c8509db81bd563c58bb57d487f9cb8f23a1bc4d2b4cf6614977fa94d7)
+        );
+
+        // create challenge - CHALLENGER
+        faultProof.createChallenge(0);
+
+        // propose operator execution - CHALLENGER (operator 2)
+        faultProof.proposeOperatorExecution(
+            0,
+            bytes32(0x95541f66f0e41e0c1171aa42ec191eca98a6d903132fb5c56247999d5d1c846b),
+            bytes32(0x6d3164945367c04f13830f4ba37d644bdcc907e0144241a03a0b2eddac1402c4)
+        );
+
+        // respond operator execution - SUBMITTER
+        faultProof.respondOperatorExecution(0, true, true);
+
+        // propose operator execution - CHALLENGER (operator 3)
+        faultProof.proposeOperatorExecution(
+            0,
+            bytes32(0x6d3164945367c04f13830f4ba37d644bdcc907e0144241a03a0b2eddac1402c4),
+            bytes32(0x5eeb0b5a8234f400165fa0420bcddf71e1de0b7496b6e5ef7df5b7f643b12aef)
+        );
+
+        // respond operator execution - SUBMITTER
+        faultProof.respondOperatorExecution(0, true, true);
+
+        // propose operator execution - CHALLENGER (operator 4)
+        faultProof.proposeOperatorExecution(
+            0,
+            bytes32(0x5eeb0b5a8234f400165fa0420bcddf71e1de0b7496b6e5ef7df5b7f643b12aef),
+            bytes32(0x86f1c59c8509db81bd563c58bb57d487f9cb8f23a1bc4d2b4cf6614977fa94d7)
+        );
+
+        // respond operator execution - SUBMITTER
+        faultProof.respondOperatorExecution(0, true, false);
+
+        // resolve challenge - CHALLENGER
+        vm.expectRevert();
+        faultProof.resolveOpenChallenge(
+            0,
+            hex"f0c4b404383d6a9cf9cd220237b3c5dad9e410e7fdca48ac58f66e94b5c31624010000000000000004000000000000005eeb0b5a8234f400165fa0420bcddf71e1de0b7496b6e5ef7df5b7f643b12aef86e1c59c8509db81bd563c58bb57d487f9cb8f23a1bc4d2b4cf6614977fa94d7",
+            hex"1b34fe112bee0c1c35a5ecdb9ebd642daf0decdefeb1c6aca62a1db8e4b5383b0ac1af640de847996e6ae1ad338bcec384c77ba952fc51fbce7eab613056c891d9d2f23f1ff14c8d0c19668e549bcaf31c789cf949a1d0c67eb0c26e1cff7f11166779991bc8cdb7e740bee0b3c6363f24e3e73acd8696417e6f2cf8469d04a5ee6153c72ddecbd83359bdf000c09572dac0f6af28e08b797ea4b17be9ed31dbce8802f819982e471bf5cd12a3df7fab1242801d267092009ae9b71ccff5bf7b89e5ee712234d8064f068dba8de85fb6f9640bcef3bdd28b96db8c5d251f67d153a0d3fd2476f06ac69581be875e36f4e40d883d9bf68ce5449a84c7c2a2da98ff1081230adb607728220d42754aab35855cf3f046106543bc92984f6fad9d0af54623eb294fab0cff1a079d635307e455281acebe658a8ce1aa11a8ecc56ee98f4617732ad04d283026c5b97dba5bb90d805e03e4eb5105385c412b3f334833556640d81e35402464e153148d93d14eb8179d8a22e46399230e43bca63790313b8008a81ecde068d7466bbe0bf56bc5ae7de081df2660a310b175f06d9e8e0af0b6d96d08ede25c89b1420ccdfcf0761a264741c13d56d48e5b15532db3d4f48001c31c09eac867028abb907dc3f455a5ed23cc5563f3478fadc42a8749e872f27b462903e19a086addfa88c4a70ade994927e9b14ab42c36b5914ff6370e5a783dd0a6182beb5b719c8e62b023977e9bc5bd46f4b7190f608fcabc28e803fc9f382bad0067aadb0c749920b9c9accff058e57ce2d691ea6ed48a0fd3ac0c212ec6d9511f02fa87a6b52dfdab7c1d46155622605f700c1492da3eded094c2f2f753abd72c92f8ecfb9373856a1206a732dcda7e81fe108d5e39d690cdaccaa982ed8ff42fbf9011aa0648754dd803e605112eec102e9e04da225640058fe19ca2845fc41d97e8294b1a93e2508228dce5ed730a5aaf0f13a11b9d2bc6cb4a3687eaf56317ce54844d8eb4f1c7a16ff2be9757a27c4ae737fa0d290de88fce278b3dec281b206313e36699bc7653dd5ae92d351f33aaf7386c84b73d82368dcf00b5217723e312e9dc67742efe7ee7fdb407d4e05261be3e0173a3be65a0d3b2ae3e54cd25fb98ae70fe296d9479e4b72e8023c3b2cace7b414661d2d6eda46e8df7cbb01820c12f3bc74010eabd36597ccb6333f0ed68b3fe02421f0335dcbc8f9f071e"
+        );
+
+        vm.warp(vm.getBlockTimestamp() + 1 weeks);
+
+        // resolve expired challenge - SUBMITTER
+        faultProof.resolveExpiredChallenge(0);
+
+        assertEq(uint256(faultProof.getChallenge(0).winner), uint256(ChallengeActor.RESPONDER));
+        assertEq(faultProof.getChallenge(0).resolved, true);
+    }
 }
