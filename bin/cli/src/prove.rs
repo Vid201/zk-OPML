@@ -1,7 +1,7 @@
 use alloy::hex::ToHexExt;
 use candle_core::Tensor;
 use candle_onnx::eval::simple_eval_one;
-use sp1_sdk::{include_elf, network::FulfillmentStrategy, Prover, ProverClient, SP1Stdin};
+use sp1_sdk::{include_elf, network::FulfillmentStrategy, HashableKey, Prover, ProverClient, SP1Stdin};
 use std::{collections::HashMap, fs::File, path::PathBuf};
 use tracing::info;
 use zkopml_ml::{
@@ -135,6 +135,9 @@ pub async fn prove(args: ProveArgs) -> anyhow::Result<()> {
         info!("Leaf indices: {:?}", leaf_indices_ret);
         info!("Inputs hash: {:?}", inputs_hash.encode_hex());
         info!("Outputs hash: {:?}", outputs_hash.encode_hex());
+
+        let (_, vk) = client.setup(ELF);
+        info!("generated keys (setup), vk: {:?}", vk.bytes32());
     } else {
         info!("Using the network SP1 prover.");
         let client = ProverClient::builder().network().build();
@@ -170,12 +173,16 @@ pub async fn prove(args: ProveArgs) -> anyhow::Result<()> {
 
         let proof = client
             .prove(&pk, &stdin)
+            .cycle_limit(1_000_000_000)
             .strategy(FulfillmentStrategy::Hosted)
             .skip_simulation(true)
             .plonk()
             .run()
             .unwrap();
         info!("generated proof");
+
+        let proof_bytes = proof.bytes();
+        info!("proof: 0x{}", proof_bytes.encode_hex());
 
         client.verify(&proof, &vk).expect("verification failed");
 

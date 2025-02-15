@@ -116,6 +116,11 @@ contract FaultProof {
         PROGRAM_VKEY = _programVKey;
     }
 
+    /// @notice Returns the challenge with the given id.
+    function getChallenge(uint256 challengeId) public view returns (Challenge memory) {
+        return challenges[challengeId];
+    }
+
     /// @notice Creates/opens a new challenge.
     function createChallenge(uint256 inferenceId) public returns (uint256 challengeId) {
         Inference memory inference = MODEL_REGISTRY.getInference(inferenceId);
@@ -159,19 +164,29 @@ contract FaultProof {
 
         uint256 mid = (challenges[challengeId].operatorLow + challenges[challengeId].operatorHigh) / 2;
 
+        uint256 inferenceId = challenges[challengeId].inferenceId;
+        Inference memory inference = MODEL_REGISTRY.getInference(inferenceId);
+        uint256 modelId = inference.modelId;
+        Model memory model = MODEL_REGISTRY.getModel(modelId);
+
         if (mid == 0) {
             require(
                 inputDataHash == challenges[challengeId].inputDataHash, "input data hash does not match (condition 1)"
             );
+        } else if (mid == model.numOperators - 1) {
+            require(
+                outputDataHash != challenges[challengeId].outputDataHash,
+                "output data hash must not match (condition 2)"
+            );
         } else if (mid > 0 && operatorExecutions[challengeId][mid - 1].outputDataHash != bytes32(0)) {
             require(
                 operatorExecutions[challengeId][mid - 1].outputDataHash == inputDataHash,
-                "input data hash does not match (condition 2)"
+                "input data hash does not match (condition 3)"
             );
         } else if (operatorExecutions[challengeId][mid + 1].inputDataHash != bytes32(0)) {
             require(
                 operatorExecutions[challengeId][mid + 1].inputDataHash == outputDataHash,
-                "input data hash does not match (condition 3)"
+                "input data hash does not match (condition 4)"
             );
         }
 
@@ -235,8 +250,10 @@ contract FaultProof {
         ISP1Verifier(SP1_VERIFIER).verifyProof(PROGRAM_VKEY, publicValues, proofBytes);
 
         // Verify the public commitments of the proof
-        (bytes32 merkleRoot, bytes memory leafIndices, bytes32 inputDataHash, bytes32 outputDataHash) =
-            abi.decode(publicValues, (bytes32, bytes, bytes32, bytes32));
+        bytes32 merkleRoot = bytes32(publicValues[:66]);
+        bytes16 leafIndices = bytes16(publicValues[32:66]);
+        bytes32 inputDataHash = bytes32(publicValues[48:80]);
+        bytes32 outputDataHash = bytes32(publicValues[80:112]);
 
         uint256 mid = (challenges[challengeId].operatorLow + challenges[challengeId].operatorHigh) / 2;
         uint256 modelId = MODEL_REGISTRY.getInference(challenges[challengeId].inferenceId).modelId;
@@ -247,11 +264,7 @@ contract FaultProof {
 
         // Verify leaf indices
         // TODO: support execution of multiple ONNX operators
-        uint256 leaf_index;
-        assembly {
-            let bytes_h := mload(add(leafIndices, 0))
-            leaf_index := bytes_h
-        }
+        uint256 leaf_index = littleToBigEndian(leafIndices);
         require(leaf_index == mid, "leaf index does not match current ONNX operator");
 
         // Verify input data hash
@@ -292,5 +305,20 @@ contract FaultProof {
         }
 
         challenges[challengeId].resolved = true;
+    }
+
+    function littleToBigEndian(bytes16 input) public pure returns (uint256) {
+        // Extract the last 8 bytes by shifting
+        bytes8 last8Bytes = bytes8(input << 64);
+        uint256 result = 0;
+
+        uint256 mul = 1;
+
+        for (uint256 i = 0; i < 8; i++) {
+            result += uint256(uint8(last8Bytes[i])) * mul;
+            mul *= 16 * 16;
+        }
+
+        return result;
     }
 }
