@@ -59,8 +59,11 @@ event OperatorExecutionProposed(
     uint256 challengeId, uint256 operatorPosition, bytes32 inputDataHash, bytes32 outputDataHash
 );
 
+/// @notice Emitted when submitter responds to a proposed operator execution.
+event OperatorExecutionResponded(uint256 challengeId, uint256 operatorPosition, bool input, bool output);
+
 /// @notice Emitted when a challenge is resolved.
-event ChallengeResolved(uint256 challengeId, address winner);
+event ChallengeResolved(uint256 challengeId, bool success, address winner);
 
 contract FaultProof {
     /// @notice Model registry.
@@ -224,15 +227,17 @@ contract FaultProof {
             challenges[challengeId].timestampAction + RESPONSE_WINDOW > block.timestamp, "response time window expired"
         );
 
-        uint256 operatorMid = (challenges[challengeId].operatorLow + challenges[challengeId].operatorHigh) / 2;
+        uint256 mid = (challenges[challengeId].operatorLow + challenges[challengeId].operatorHigh) / 2;
+
+        // TODO: check if the responder already agreed with the input/output data hash (mid - 1 or mid + 1)
 
         // 1.
         if (input && output) {
-            challenges[challengeId].operatorLow = operatorMid + 1;
+            challenges[challengeId].operatorLow = mid + 1;
         }
         // 2.
         else if (!input) {
-            challenges[challengeId].operatorHigh = operatorMid - 1;
+            challenges[challengeId].operatorHigh = mid - 1;
         }
         // 3.
         else {
@@ -241,6 +246,8 @@ contract FaultProof {
 
         challenges[challengeId].lastActor = ChallengeActor.RESPONDER;
         challenges[challengeId].timestampAction = block.timestamp;
+
+        emit OperatorExecutionResponded(challengeId, mid, input, output);
     }
 
     /// @notice Can be called by anyone, but will usually be called by challenger.
@@ -288,6 +295,8 @@ contract FaultProof {
         // TODO: slash the responder
 
         challenges[challengeId].resolved = true;
+
+        emit ChallengeResolved(challengeId, challenges[challengeId].winner == ChallengeActor.CHALLENGER, challenges[challengeId].challenger);
     }
 
     // This can be called by responder to resolve the expired challenge.
@@ -298,15 +307,21 @@ contract FaultProof {
         );
         require(!challenges[challengeId].resolved, "challenge already resolved");
 
+        address winner;
+
         if (challenges[challengeId].lastActor == ChallengeActor.RESPONDER || challenges[challengeId].ready) {
             challenges[challengeId].winner = ChallengeActor.RESPONDER;
+            winner = challenges[challengeId].responder;
             // TODO: slash the challenger
         } else {
             challenges[challengeId].winner = ChallengeActor.CHALLENGER;
+            winner = challenges[challengeId].challenger;
             // TODO: slash the responder
         }
 
         challenges[challengeId].resolved = true;
+
+        emit ChallengeResolved(challengeId, challenges[challengeId].winner == ChallengeActor.CHALLENGER, winner);
     }
 
     function littleToBigEndian(bytes16 input) public pure returns (uint256) {

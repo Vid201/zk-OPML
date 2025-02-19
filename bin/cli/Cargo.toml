@@ -12,6 +12,7 @@ clap.workspace = true
 futures-util.workspace = true
 ipfs-api-backend-hyper.workspace = true
 log.workspace = true
+rand.workspace = true
 serde.workspace = true
 serde_json.workspace = true
 tokio.workspace = true

@@ -1,8 +1,5 @@
 use alloy::{
-    network::EthereumWallet,
-    primitives::{Address, Bytes, U256},
-    providers::{ProviderBuilder, WsConnect},
-    signers::local::LocalSigner,
+    hex::ToHexExt, network::EthereumWallet, primitives::{Address, Bytes, U256}, providers::{ProviderBuilder, WsConnect}, signers::local::LocalSigner
 };
 use ipfs_api_backend_hyper::{IpfsApi, IpfsClient};
 use std::{fs::File, str::FromStr};
@@ -62,7 +59,7 @@ pub async fn register(args: RegisterArgs) -> anyhow::Result<()> {
     let nodes = model.graph().unwrap().node;
     let nodes_len = nodes.len();
     let merkle_tree = ModelMerkleTree::new(nodes, model.graph().unwrap());
-    info!("Merkle root hash: {:?}", merkle_tree.root());
+    info!("Merkle root hash: {:?}", merkle_tree.root().encode_hex());
 
     // Publish the model to the decentralized storage (IPFS)
     info!("Publishing the model to the decentralized storage (IPFS).");

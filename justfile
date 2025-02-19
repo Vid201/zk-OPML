@@ -94,6 +94,7 @@ submit:
 	./target/release/zkopml-cli submit \
 		--eth-node-address {{eth_rpc}} \
 		--model-registry-address {{registry}} \
+		--fault-proof-address {{fault_proof}} \
 		--user-key {{user}} \
 		--model-id {{model_id}} \
 		--model-path {{model}} \
@@ -101,10 +102,11 @@ submit:
 		--output-shape {{output_shape}} \
 		{{verbosity}}
 
-submit-wrong:
+submit-defect:
 	./target/release/zkopml-cli submit \
 		--eth-node-address {{eth_rpc}} \
 		--model-registry-address {{registry}} \
+		--fault-proof-address {{fault_proof}} \
 		--user-key {{user}} \
 		--model-id {{model_id}} \
 		--model-path {{model}} \
@@ -117,6 +119,7 @@ verify:
 	./target/release/zkopml-cli verify \
 		--eth-node-address {{eth_rpc}} \
 		--model-registry-address {{registry}} \
+		--fault-proof-address {{fault_proof}} \
 		--user-key {{user}} \
 		--model-id {{model_id}} \
 		--model-path {{model}} \
