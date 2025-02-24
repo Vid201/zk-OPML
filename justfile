@@ -116,6 +116,7 @@ submit-defect:
 		{{verbosity}}
 
 verify:
+	SP1_PROVER=network NETWORK_RPC_URL=${NETWORK_RPC_URL} NETWORK_PRIVATE_KEY=${NETWORK_PRIVATE_KEY} \
 	./target/release/zkopml-cli verify \
 		--eth-node-address {{eth_rpc}} \
 		--model-registry-address {{registry}} \
