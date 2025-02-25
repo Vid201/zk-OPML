@@ -4,9 +4,7 @@ pragma solidity ^0.8.24;
 import "./interfaces/IModelRegistry.sol";
 
 /// @notice Emitted when new model is registered.
-event ModelRegistered(
-    uint256 id, string uri, address registrar, bytes inputShape, bytes outputShape, bytes32 root, uint256 numOperators
-);
+event ModelRegistered(uint256 id, string uri, address registrar, bytes32 root, uint256 numOperators);
 
 /// @notice Emitted when new inference request is made.
 event InferenceRequested(
@@ -36,18 +34,12 @@ contract ModelRegistry is IModelRegistry {
     mapping(uint256 => Inference) public inferences;
 
     /// @notice Registers a new model.
-    function registerModel(
-        string memory uri,
-        bytes calldata inputShape,
-        bytes calldata outputShape,
-        bytes32 root,
-        uint256 numOperators
-    ) public returns (uint256 modelId) {
+    function registerModel(string memory uri, bytes32 root, uint256 numOperators) public returns (uint256 modelId) {
         modelId = modelCounter;
         modelCounter = modelCounter + 1;
-        models[modelId] = Model(modelId, uri, msg.sender, inputShape, outputShape, root, numOperators);
+        models[modelId] = Model(modelId, uri, msg.sender, root, numOperators);
 
-        emit ModelRegistered(modelId, uri, msg.sender, inputShape, outputShape, root, numOperators);
+        emit ModelRegistered(modelId, uri, msg.sender, root, numOperators);
     }
 
     /// @notice Returns a registered model.

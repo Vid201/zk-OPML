@@ -296,7 +296,9 @@ contract FaultProof {
 
         challenges[challengeId].resolved = true;
 
-        emit ChallengeResolved(challengeId, challenges[challengeId].winner == ChallengeActor.CHALLENGER, challenges[challengeId].challenger);
+        emit ChallengeResolved(
+            challengeId, challenges[challengeId].winner == ChallengeActor.CHALLENGER, challenges[challengeId].challenger
+        );
     }
 
     // This can be called by responder to resolve the expired challenge.

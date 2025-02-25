@@ -1,11 +1,13 @@
 use alloy::hex::ToHexExt;
 use candle_core::Tensor;
-use candle_onnx::eval::simple_eval_one;
-use sp1_sdk::{include_elf, network::FulfillmentStrategy, HashableKey, Prover, ProverClient, SP1Stdin};
-use std::{collections::HashMap, fs::File, path::PathBuf};
+use candle_onnx::eval::{get_tensor, simple_eval_one};
+use sp1_sdk::{
+    include_elf, network::FulfillmentStrategy, HashableKey, Prover, ProverClient, SP1Stdin,
+};
+use std::collections::HashMap;
 use tracing::info;
 use zkopml_ml::{
-    data::{tensor_hash, DataFile},
+    data::tensor_hash,
     merkle::{MerkleTreeHash, ModelMerkleTree},
     onnx::load_onnx_model,
 };
@@ -25,18 +27,6 @@ pub struct ProveArgs {
     #[clap(long)]
     pub model_path: String,
 
-    /// Path to the input data
-    #[clap(long)]
-    pub input_data_path: String,
-
-    /// Input shape of the model
-    #[clap(long, value_delimiter = ',')]
-    pub input_shape: Vec<usize>,
-
-    /// Output shape of the model
-    #[clap(long, value_delimiter = ',')]
-    pub output_shape: Vec<usize>,
-
     /// Index of the ONNX operator to prove
     #[clap(long)]
     pub operator_index: usize,
@@ -49,30 +39,17 @@ pub struct ProveArgs {
 const ELF: &[u8] = include_elf!("zkopml-sp1");
 
 pub async fn prove(args: ProveArgs) -> anyhow::Result<()> {
-    // Read the input data
-    info!("Reading the input data from {}", args.input_data_path);
-    let path = PathBuf::from(&args.input_data_path);
-    let reader = File::open(&path)?;
-    let data_file: DataFile = serde_json::from_reader(reader)?;
-    let input_data: Vec<f32> = data_file.input_data.into_iter().flat_map(|v| v).collect();
-    info!("Input data: {:?}", input_data);
-
     // Load the model and perform the inference
     info!("Reading the model file from {}", args.model_path);
     let model_path = args.model_path.clone();
     let model = load_onnx_model(&model_path)?;
     info!("Number of ONNX operators: {}", model.num_operators());
 
-    let mut inputs: HashMap<String, Tensor> = HashMap::new();
-    model.prepare_inputs(&mut inputs, input_data.clone(), args.input_shape.clone())?;
-    let result = model.inference(&mut inputs)?;
-    info!("Inference result: {:?}", result["output"].to_string());
-
     // Create merkle tree from ONNX operators
     info!("Creating a Merkle tree from the model operators.");
     let nodes = model.graph().unwrap().node;
     let merkle_tree = ModelMerkleTree::new(nodes, model.graph().unwrap());
-    info!("Merkle root hash: {:?}", merkle_tree.root());
+    info!("Merkle root hash: {:?}", merkle_tree.root().encode_hex());
 
     // Create SP1 proof of execution
     let node_index = args.operator_index;
@@ -92,7 +69,11 @@ pub async fn prove(args: ProveArgs) -> anyhow::Result<()> {
     stdin.write(&merkle_proof);
 
     let mut inputs: HashMap<String, Tensor> = HashMap::new();
-    model.prepare_inputs(&mut inputs, input_data, args.input_shape)?;
+    for t in model.graph().clone().unwrap().initializer.iter() {
+        let tensor = get_tensor(t, t.name.as_str())?;
+        inputs.insert(t.name.to_string(), tensor);
+    }
+    model.prepare_inputs(&mut inputs)?;
     for i in 0..node_index {
         let node = model.get_node(i).unwrap();
         simple_eval_one(&node, &mut inputs)?;
@@ -131,7 +112,7 @@ pub async fn prove(args: ProveArgs) -> anyhow::Result<()> {
         let outputs_hash = public_values.read::<[u8; 32]>();
 
         info!("Returned public values:");
-        info!("Merkle root: {:?}", merkle_root_ret);
+        info!("Merkle root: {:?}", merkle_root_ret.encode_hex());
         info!("Leaf indices: {:?}", leaf_indices_ret);
         info!("Inputs hash: {:?}", inputs_hash.encode_hex());
         info!("Outputs hash: {:?}", outputs_hash.encode_hex());
@@ -160,7 +141,7 @@ pub async fn prove(args: ProveArgs) -> anyhow::Result<()> {
         let outputs_hash = public_values.read::<[u8; 32]>();
 
         info!("Returned public values:");
-        info!("Merkle root: {:?}", merkle_root_ret);
+        info!("Merkle root: {:?}", merkle_root_ret.encode_hex());
         info!("Leaf indices: {:?}", leaf_indices_ret);
         info!("Inputs hash: {:?}", inputs_hash.encode_hex());
         info!("Outputs hash: {:?}", outputs_hash.encode_hex());

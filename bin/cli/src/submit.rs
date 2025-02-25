@@ -9,7 +9,7 @@ use alloy::{
     sol_types::SolEvent,
 };
 use candle_core::Tensor;
-use candle_onnx::eval::simple_eval_one;
+use candle_onnx::eval::{get_tensor, simple_eval_one};
 use futures_util::stream::StreamExt;
 use rand::Rng;
 use sha2::Digest;
@@ -45,14 +45,6 @@ pub struct SubmitArgs {
     /// Path to the model file (ONNX)
     #[clap(long)]
     pub model_path: String,
-
-    /// Input shape of the model
-    #[clap(long, value_delimiter = ',')]
-    pub input_shape: Vec<usize>,
-
-    /// Output shape of the model
-    #[clap(long, value_delimiter = ',')]
-    pub output_shape: Vec<usize>,
 
     /// Whether to submit wrong result (for testing purposes)
     #[clap(long, short)]
@@ -98,8 +90,6 @@ pub async fn submit(args: SubmitArgs) -> anyhow::Result<()> {
         .await?;
     let mut stream = sub.into_stream();
 
-    let input_shape = args.input_shape.clone();
-
     while let Some(log) = stream.next().await {
         // Parse the data
         info!("Received inference request: {:?}", log);
@@ -112,13 +102,7 @@ pub async fn submit(args: SubmitArgs) -> anyhow::Result<()> {
         info!("Decoded request: {:?}", request);
         let model_id: U256 = request.modelId;
         let inference_id: U256 = request.inferenceId;
-        let input_data_arr_u8 = request.inputData.as_ref();
-        let num_f32s = input_data_arr_u8.len() / 4;
-        let input_data = vec![unsafe {
-            let f32_slice =
-                std::slice::from_raw_parts(input_data_arr_u8.as_ptr() as *const f32, num_f32s);
-            f32_slice.to_vec()
-        }];
+        let input_data = request.inputData;
         info!(
             "Model id: {}, Inference id: {}, Input data: {:?}",
             model_id, inference_id, input_data
@@ -131,11 +115,9 @@ pub async fn submit(args: SubmitArgs) -> anyhow::Result<()> {
         let model_path = args.model_path.clone();
         let model = load_onnx_model(&model_path)?;
 
-        let input_data: Vec<f32> = input_data.into_iter().flat_map(|v| v).collect();
-        let mut inputs: HashMap<String, Tensor> = HashMap::new();
-        model.prepare_inputs(&mut inputs, input_data, input_shape.clone())?;
+        let mut inputs: HashMap<String, Tensor> = serde_json::from_slice(&input_data).unwrap();
 
-        let mut inference_data: HashMap<U256, Vec<([u8; 32], [u8; 32])>> = HashMap::new();
+        let mut inference_hashes: HashMap<U256, Vec<([u8; 32], [u8; 32])>> = HashMap::new();
 
         // If the defect flag is set, randomly select an operator to produce a defect
         let defect_index = if args.defect {
@@ -148,6 +130,13 @@ pub async fn submit(args: SubmitArgs) -> anyhow::Result<()> {
 
         for i in 0..model.num_operators() {
             let node = model.get_node(i).unwrap();
+
+            if i == 0 {
+                for t in model.graph().clone().unwrap().initializer.iter() {
+                    let tensor = get_tensor(t, t.name.as_str())?;
+                    inputs.insert(t.name.to_string(), tensor);
+                }
+            }
 
             // Calculate hash of the input data
             let mut input_hashes = HashMap::new();
@@ -191,15 +180,25 @@ pub async fn submit(args: SubmitArgs) -> anyhow::Result<()> {
             hasher.update(serde_json::to_string(&input_entries).unwrap().as_bytes()); // TODO: figure out how to more efficiently hash a tensor
             let output_hash: [u8; 32] = hasher.finalize().into();
 
-            inference_data
+            inference_hashes
                 .entry(inference_id)
                 .or_insert_with(Vec::new)
                 .push((input_hash, output_hash));
         }
 
-        let result = inputs.clone();
+        let mut result = HashMap::new();
 
-        info!("Inference result: {:?}", result["output"].to_string());
+        for output in model.graph().unwrap().output.iter() {
+            if let Some(tensor) = inputs.get(output.name.as_str()) {
+                info!(
+                    "Inference result for {}: {:?}",
+                    output.name,
+                    tensor.to_string()
+                );
+                result.insert(output.name.clone(), tensor.clone());
+            }
+        }
+
         let mut input_hashes = HashMap::new();
         for (name, tensor) in inputs.iter() {
             let hash = tensor_hash(tensor);
@@ -212,11 +211,8 @@ pub async fn submit(args: SubmitArgs) -> anyhow::Result<()> {
         let hash: [u8; 32] = hasher.finalize().into();
 
         // Submit the result
-        let output_data: Vec<f32> = result["output"].flatten_all()?.to_vec1::<f32>()?;
-        let output_data = Bytes::from_iter(unsafe {
-            std::slice::from_raw_parts(output_data.as_ptr() as *const u8, output_data.len() * 4)
-                .iter()
-        });
+        let output_data =
+            Bytes::copy_from_slice(serde_json::to_string(&result).unwrap().as_bytes());
         let model_registry = zkopml_contracts::ModelRegistry::new(
             args.model_registry_address,
             user_provider.clone(),
@@ -277,7 +273,7 @@ pub async fn submit(args: SubmitArgs) -> anyhow::Result<()> {
                             "Operator execution proposed for challenge id {} at position {}",
                             request.challengeId, request.operatorPosition
                         );
-                        let (input_data_hash, output_data_hash) = inference_data
+                        let (input_data_hash, output_data_hash) = inference_hashes
                             .get(&inference_id)
                             .unwrap()[operator_position.to::<usize>()];
                         let input_data_match = input_data_hash == request.inputDataHash;

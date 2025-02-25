@@ -8032,7 +8032,6 @@ dependencies = [
  "candle-core",
  "candle-onnx",
  "rs_merkle",
- "serde",
  "serde_json",
  "sha2 0.10.8 (git+https://github.com/sp1-patches/RustCrypto-hashes?tag=patch-sha2-0.10.8-sp1-4.0.0)",
 ]

@@ -9,10 +9,6 @@ struct Model {
     string uri;
     /// @notice Address of the model registrar.
     address registrar;
-    /// @notice Input shape of the model.
-    bytes inputShape;
-    /// @notice Output shape of the model.
-    bytes outputShape;
     /// @notice Merkle root of the model operators.
     bytes32 root;
     /// @notice Number of ONNX operators in the model.

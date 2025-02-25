@@ -10,7 +10,7 @@ use alloy::{
     sol_types::SolEvent,
 };
 use candle_core::Tensor;
-use candle_onnx::eval::simple_eval_one;
+use candle_onnx::eval::{get_tensor, simple_eval_one};
 use futures_util::StreamExt;
 use sha2::Digest;
 use sp1_sdk::{include_elf, network::FulfillmentStrategy, Prover, ProverClient, SP1Stdin};
@@ -46,14 +46,6 @@ pub struct VerifyArgs {
     /// Path to the model file (ONNX)
     #[clap(long)]
     pub model_path: String,
-
-    /// Input shape of the model
-    #[clap(long, value_delimiter = ',')]
-    pub input_shape: Vec<usize>,
-
-    /// Output shape of the model
-    #[clap(long, value_delimiter = ',')]
-    pub output_shape: Vec<usize>,
 }
 
 sol!(
@@ -99,8 +91,6 @@ pub async fn verify(args: VerifyArgs) -> anyhow::Result<()> {
         .await?;
     let mut stream = sub.into_stream();
 
-    let input_shape = args.input_shape.clone();
-
     while let Some(log) = stream.next().await {
         // Parse the data
         info!("Received inference response: {:?}", log);
@@ -113,16 +103,9 @@ pub async fn verify(args: VerifyArgs) -> anyhow::Result<()> {
         info!("Decoded response: {:?}", response);
         let model_id: U256 = response.modelId;
         let inference_id: U256 = response.inferenceId;
-        let output_data_arr_u8 = response.outputData.as_ref();
-        let num_f32s = output_data_arr_u8.len() / 4;
-        let output_data = vec![unsafe {
-            let f32_slice =
-                std::slice::from_raw_parts(output_data_arr_u8.as_ptr() as *const f32, num_f32s);
-            f32_slice.to_vec()
-        }];
         info!(
             "Model id: {}, Inference id: {}, Output data: {:?}",
-            model_id, inference_id, output_data
+            model_id, inference_id, response.outputData
         );
 
         // Get the inference input data
@@ -131,13 +114,7 @@ pub async fn verify(args: VerifyArgs) -> anyhow::Result<()> {
             user_provider.clone(),
         );
         let inference = model_registry.getInference(inference_id).call().await?;
-        let input_data_arr_u8 = inference.inference.inputData.as_ref();
-        let num_f32s = input_data_arr_u8.len() / 4;
-        let input_data = vec![unsafe {
-            let f32_slice =
-                std::slice::from_raw_parts(input_data_arr_u8.as_ptr() as *const f32, num_f32s);
-            f32_slice.to_vec()
-        }];
+        let input_data = inference.inference.inputData;
         info!("Inference input data: {:?}", input_data);
 
         // Perform the inference
@@ -147,9 +124,7 @@ pub async fn verify(args: VerifyArgs) -> anyhow::Result<()> {
         let model_path = args.model_path.clone();
         let model = load_onnx_model(&model_path)?;
 
-        let input_data: Vec<f32> = input_data.into_iter().flat_map(|v| v).collect();
-        let mut inputs: HashMap<String, Tensor> = HashMap::new();
-        model.prepare_inputs(&mut inputs, input_data, input_shape.clone())?;
+        let mut inputs: HashMap<String, Tensor> = serde_json::from_slice(&input_data).unwrap();
 
         let mut inference_data: HashMap<U256, Vec<HashMap<String, Tensor>>> = HashMap::new();
         let mut inference_data_hashes: HashMap<U256, Vec<HashMap<String, [u8; 32]>>> =
@@ -157,6 +132,13 @@ pub async fn verify(args: VerifyArgs) -> anyhow::Result<()> {
         let mut inference_hashes: HashMap<U256, Vec<([u8; 32], [u8; 32])>> = HashMap::new();
 
         for i in 0..model.num_operators() {
+            if i == 0 {
+                for t in model.graph().clone().unwrap().initializer.iter() {
+                    let tensor = get_tensor(t, t.name.as_str())?;
+                    inputs.insert(t.name.to_string(), tensor);
+                }
+            }
+
             inference_data
                 .entry(inference_id)
                 .or_insert_with(Vec::new)
@@ -202,9 +184,15 @@ pub async fn verify(args: VerifyArgs) -> anyhow::Result<()> {
                 .push((input_hash, output_hash));
         }
 
-        let result = inputs.clone();
+        let mut result = HashMap::new();
 
-        info!("Inference result: {:?}", result["output"].to_string());
+        for output in model.graph().unwrap().output.iter() {
+            if let Some(tensor) = inputs.get(output.name.as_str()) {
+                info!("Inference result for {}: {:?}", output.name, tensor);
+                result.insert(output.name.clone(), tensor.clone());
+            }
+        }
+
         let mut input_hashes = HashMap::new();
         for (name, tensor) in inputs.iter() {
             let hash = tensor_hash(tensor);
@@ -217,11 +205,8 @@ pub async fn verify(args: VerifyArgs) -> anyhow::Result<()> {
         let hash: [u8; 32] = hasher.finalize().into();
 
         // Compare the result with the expected output
-        let output_data: Vec<f32> = result["output"].flatten_all()?.to_vec1::<f32>()?;
-        let output_data = Bytes::from_iter(unsafe {
-            std::slice::from_raw_parts(output_data.as_ptr() as *const u8, output_data.len() * 4)
-                .iter()
-        });
+        let output_data =
+            Bytes::copy_from_slice(serde_json::to_string(&result).unwrap().as_bytes());
         if output_data == response.outputData && hash == response.outputDataHash {
             info!("Output data matches the expected result, not challenging");
             continue;

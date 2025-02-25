@@ -14,8 +14,6 @@ contract ModelRegistryTest is Test {
     function test_RegisterModel() public {
         modelRegistry.registerModel(
             "ipfs://QmTzQ1dz4N7UwW7EeLNkFvn7sPjscV8RjyC3K7yNZF2egM",
-            "0x100",
-            "0x200",
             bytes32(0xcd316985c6f85acd9dc31a14fef75077a4fb3b9607236cc0fc8f6ac0434eefa8),
             5
         );

@@ -1,4 +1,5 @@
 use alloy::{
+    hex::ToHexExt,
     network::EthereumWallet,
     primitives::{Address, U256},
     providers::{ProviderBuilder, WsConnect},
@@ -81,6 +82,7 @@ pub async fn deploy(args: DeployArgs) -> anyhow::Result<()> {
     info!("Deploying FaultProof contract.");
     let client = ProverClient::builder().cpu().build();
     let (_, vk) = client.setup(ELF);
+    info!("vk: {:?}", &vk.bytes32_raw().encode_hex());
     let fault_proof_contract = zkopml_contracts::FaultProof::deploy(
         deployer_provider.clone(),
         model_registry_contract.address().clone(),

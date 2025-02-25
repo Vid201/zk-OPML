@@ -5,13 +5,11 @@ use alloy::{
     signers::local::LocalSigner,
 };
 use candle_core::Tensor;
+use candle_onnx::eval::get_tensor;
 use sha2::Digest;
-use std::{collections::HashMap, fs::File, path::PathBuf, str::FromStr};
+use std::{collections::HashMap, str::FromStr};
 use tracing::info;
-use zkopml_ml::{
-    data::{tensor_hash, DataFile},
-    onnx::load_onnx_model,
-};
+use zkopml_ml::{data::tensor_hash, onnx::load_onnx_model};
 
 #[derive(clap::Args, Debug, Clone)]
 pub struct RequestArgs {
@@ -30,10 +28,6 @@ pub struct RequestArgs {
     #[clap(long)]
     pub model_path: String,
 
-    /// Input shape of the model
-    #[clap(long, value_delimiter = ',')]
-    pub input_shape: Vec<usize>,
-
     /// Secret key to use for requesting the inference
     #[clap(long)]
     pub user_key: String,
@@ -41,10 +35,6 @@ pub struct RequestArgs {
     /// Model id to use
     #[clap(long)]
     pub model_id: u8,
-
-    /// Path to the input data
-    #[clap(long)]
-    pub input_data_path: String,
 }
 
 pub async fn request(args: RequestArgs) -> anyhow::Result<()> {
@@ -60,14 +50,6 @@ pub async fn request(args: RequestArgs) -> anyhow::Result<()> {
         .await?;
     info!("User address: {}", user_wallet.default_signer().address());
 
-    // Read the input data
-    info!("Reading the input data from {}", args.input_data_path);
-    let path = PathBuf::from(&args.input_data_path);
-    let reader = File::open(&path)?;
-    let data_file: DataFile = serde_json::from_reader(reader)?;
-    let input_data: Vec<f32> = data_file.input_data.into_iter().flat_map(|v| v).collect();
-    info!("Input data: {:?}", input_data);
-
     // Read the model just to structure the input data
     // TODO: read the model file from IPFS based on model id
     // For now, we are going to assume there is only one model
@@ -75,7 +57,11 @@ pub async fn request(args: RequestArgs) -> anyhow::Result<()> {
     let model_path = args.model_path.clone();
     let model = load_onnx_model(&model_path)?;
     let mut inputs: HashMap<String, Tensor> = HashMap::new();
-    model.prepare_inputs(&mut inputs, input_data.clone(), args.input_shape)?;
+    model.prepare_inputs(&mut inputs)?;
+    for t in model.graph().clone().unwrap().initializer.iter() {
+        let tensor = get_tensor(t, t.name.as_str())?;
+        inputs.insert(t.name.to_string(), tensor);
+    }
     let mut input_hashes = HashMap::new();
     for (name, tensor) in inputs.iter() {
         let hash = tensor_hash(tensor);
@@ -86,14 +72,14 @@ pub async fn request(args: RequestArgs) -> anyhow::Result<()> {
     let mut hasher = sha2::Sha256::new();
     hasher.update(serde_json::to_string(&input_entries).unwrap().as_bytes()); // TODO: figure out how to more efficiently hash a tensor
     let hash: [u8; 32] = hasher.finalize().into();
+    let node = model.get_node(0).unwrap();
+    inputs.retain(|k: &String, _| node.input.contains(k));
 
     // Request the inference
     let model_registry =
         zkopml_contracts::ModelRegistry::new(args.model_registry_address, user_provider);
     let model_id = U256::from(args.model_id);
-    let input_data = Bytes::from_iter(unsafe {
-        std::slice::from_raw_parts(input_data.as_ptr() as *const u8, input_data.len() * 4).iter()
-    });
+    let input_data = Bytes::copy_from_slice(serde_json::to_string(&inputs).unwrap().as_bytes());
 
     let tx = model_registry
         .requestInference(model_id, input_data, hash.into())

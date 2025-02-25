@@ -1,3 +1,7 @@
 target/
 *.log
 .env
+
+# onnx models
+testdata/whisper/network.onnx
+testdata/gte/network.onnx

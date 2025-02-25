@@ -6,10 +6,9 @@ eth_rpc := "ws://127.0.0.1:8546"
 deployer := "0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80"
 owner := "0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80"
 user := "0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80"
+# model := "./testdata/gte/network.onnx"
+# model := "./testdata/whisper/network.onnx" 
 model := "./testdata/variable_cnn/network.onnx"
-input_data := "./testdata/variable_cnn/input.json"
-input_shape := "1,1,28,28"
-output_shape := "1,1,28,28"
 verifier := "0x61EEd5eE968506eB27320FD776Fe14E4842b1990"
 registry := "0xcf7ed3acca5a467e9e704c703e8d87f634fb0fc9"
 fault_proof := "0xdc64a140aa3e981100a9beca4e685f962f0cf6c9"
@@ -75,8 +74,6 @@ register:
 		--model-registry-address {{registry}} \
 		--user-key {{user}} \
 		--model-path {{model}} \
-		--input-shape {{input_shape}} \
-		--output-shape {{output_shape}} \
 		{{verbosity}}
 
 request:
@@ -84,10 +81,8 @@ request:
 		--eth-node-address {{eth_rpc}} \
 		--model-registry-address {{registry}} \
 		--model-path {{model}} \
-		--input-shape {{input_shape}} \
 		--user-key {{user}} \
 		--model-id {{model_id}} \
-		--input-data-path {{input_data}} \
 		{{verbosity}}
 
 submit:
@@ -98,8 +93,6 @@ submit:
 		--user-key {{user}} \
 		--model-id {{model_id}} \
 		--model-path {{model}} \
-		--input-shape {{input_shape}} \
-		--output-shape {{output_shape}} \
 		{{verbosity}}
 
 submit-defect:
@@ -110,8 +103,6 @@ submit-defect:
 		--user-key {{user}} \
 		--model-id {{model_id}} \
 		--model-path {{model}} \
-		--input-shape {{input_shape}} \
-		--output-shape {{output_shape}} \
 		--defect \
 		{{verbosity}}
 
@@ -124,16 +115,11 @@ verify:
 		--user-key {{user}} \
 		--model-id {{model_id}} \
 		--model-path {{model}} \
-		--input-shape {{input_shape}} \
-		--output-shape {{output_shape}} \
 		{{verbosity}}
 
 prove:
 	./target/release/zkopml-cli prove \
 		--model-path {{model}} \
-		--input-data-path {{input_data}} \
-		--input-shape {{input_shape}} \
-		--output-shape {{output_shape}} \
 		--operator-index {{operator_index}} \
 		--sp1-prover cpu \
 		{{verbosity}}
@@ -142,9 +128,6 @@ prove-network:
 		SP1_PROVER=network NETWORK_RPC_URL=${NETWORK_RPC_URL} NETWORK_PRIVATE_KEY=${NETWORK_PRIVATE_KEY} \
 		./target/release/zkopml-cli prove \
 		--model-path {{model}} \
-		--input-data-path {{input_data}} \
-		--input-shape {{input_shape}} \
-		--output-shape {{output_shape}} \
 		--operator-index {{operator_index}} \
 		--sp1-prover network \
 		{{verbosity}}

@@ -1,5 +1,9 @@
 use alloy::{
-    hex::ToHexExt, network::EthereumWallet, primitives::{Address, Bytes, U256}, providers::{ProviderBuilder, WsConnect}, signers::local::LocalSigner
+    hex::ToHexExt,
+    network::EthereumWallet,
+    primitives::{Address, U256},
+    providers::{ProviderBuilder, WsConnect},
+    signers::local::LocalSigner,
 };
 use ipfs_api_backend_hyper::{IpfsApi, IpfsClient};
 use std::{fs::File, str::FromStr};
@@ -26,14 +30,6 @@ pub struct RegisterArgs {
     /// Path to the model file (ONNX)
     #[clap(long)]
     pub model_path: String,
-
-    /// Input shape of the model
-    #[clap(long, value_delimiter = ',')]
-    pub input_shape: Vec<usize>,
-
-    /// Output shape of the model
-    #[clap(long, value_delimiter = ',')]
-    pub output_shape: Vec<usize>,
 }
 
 pub async fn register(args: RegisterArgs) -> anyhow::Result<()> {
@@ -72,25 +68,9 @@ pub async fn register(args: RegisterArgs) -> anyhow::Result<()> {
     info!("Publishing the model metadata to the ModelRegistry contract.");
     let model_registry =
         zkopml_contracts::ModelRegistry::new(args.model_registry_address, user_provider.clone());
-    let input_shape = Bytes::from_iter(unsafe {
-        std::slice::from_raw_parts(
-            args.input_shape.as_ptr() as *const u8,
-            args.input_shape.len() * 8,
-        )
-        .iter()
-    });
-    let output_shape = Bytes::from_iter(unsafe {
-        std::slice::from_raw_parts(
-            args.output_shape.as_ptr() as *const u8,
-            args.output_shape.len() * 8,
-        )
-        .iter()
-    });
     let tx = model_registry
         .registerModel(
             format!("ipfs://{}", result.hash),
-            input_shape,
-            output_shape,
             merkle_tree.root().into(),
             U256::from(nodes_len).into(),
         )
