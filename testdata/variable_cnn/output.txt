@@ -1,0 +1,139 @@
+[2m2025-02-26T09:39:34.331436Z[0m [32m INFO[0m [2mzkopml_cli::prove[0m[2m:[0m Reading the model file from ./testdata/variable_cnn/network.onnx
+[2m2025-02-26T09:39:34.332589Z[0m [32m INFO[0m [2mzkopml_cli::prove[0m[2m:[0m Number of ONNX operators: 5
+[2m2025-02-26T09:39:34.332602Z[0m [32m INFO[0m [2mzkopml_cli::prove[0m[2m:[0m Creating a Merkle tree from the model operators.
+[2m2025-02-26T09:39:34.345391Z[0m [32m INFO[0m [2mzkopml_cli::prove[0m[2m:[0m Merkle root hash: "f0c4b404383d6a9cf9cd220237b3c5dad9e410e7fdca48ac58f66e94b5c31624"
+stdin: 8
+32
+16
+40
+8
+104
+6673
+255
+815
+[2m2025-02-26T09:39:34.355757Z[0m [32m INFO[0m [2mzkopml_cli::prove[0m[2m:[0m Using the local/cpu SP1 prover.
+[2m2025-02-26T09:39:34.900887Z[0m [32m INFO[0m [2msp1_prover[0m[2m:[0m vk verification: true
+[2m2025-02-26T09:39:37.163879Z[0m [32m INFO[0m [2mzkopml_cli::prove[0m[2m:[0m Executing the SP1 program. Proving ONNX operator: NodeProto { input: ["input", "convs.0.weight", "convs.0.bias"], output: ["/convs.0/Conv_output_0"], name: "/convs.0/Conv", op_type: "Conv", domain: "", attribute: [AttributeProto { name: "dilations", ref_attr_name: "", doc_string: "", r#type: Ints, f: 0.0, i: 0, s: [], t: None, g: None, sparse_tensor: None, tp: None, floats: [], ints: [1, 1], strings: [], tensors: [], graphs: [], sparse_tensors: [], type_protos: [] }, AttributeProto { name: "group", ref_attr_name: "", doc_string: "", r#type: Int, f: 0.0, i: 1, s: [], t: None, g: None, sparse_tensor: None, tp: None, floats: [], ints: [], strings: [], tensors: [], graphs: [], sparse_tensors: [], type_protos: [] }, AttributeProto { name: "kernel_shape", ref_attr_name: "", doc_string: "", r#type: Ints, f: 0.0, i: 0, s: [], t: None, g: None, sparse_tensor: None, tp: None, floats: [], ints: [3, 3], strings: [], tensors: [], graphs: [], sparse_tensors: [], type_protos: [] }, AttributeProto { name: "pads", ref_attr_name: "", doc_string: "", r#type: Ints, f: 0.0, i: 0, s: [], t: None, g: None, sparse_tensor: None, tp: None, floats: [], ints: [1, 1, 1, 1], strings: [], tensors: [], graphs: [], sparse_tensors: [], type_protos: [] }, AttributeProto { name: "strides", ref_attr_name: "", doc_string: "", r#type: Ints, f: 0.0, i: 0, s: [], t: None, g: None, sparse_tensor: None, tp: None, floats: [], ints: [1, 1], strings: [], tensors: [], graphs: [], sparse_tensors: [], type_protos: [] }], doc_string: "" }
+[2m2025-02-26T09:39:37.203422Z[0m [32m INFO[0m [1mexecute[0m[2m:[0m [2msp1_core_executor::executor[0m[2m:[0m clk = 0 pc = 0x2219d4    
+stderr: WARNING: Using insecure random number generator.
+[2m2025-02-26T09:39:37.391444Z[0m [32m INFO[0m [2mzkopml_cli::prove[0m[2m:[0m executed program with 8390169 cycles
+[2m2025-02-26T09:39:37.391478Z[0m [32m INFO[0m [2mzkopml_cli::prove[0m[2m:[0m Raw public values: "0xf0c4b404383d6a9cf9cd220237b3c5dad9e410e7fdca48ac58f66e94b5c3162401000000000000000000000000000000be7c9f3b068911bc4e4f0a92253667a8661b250d2f82cc6f402efd756393983424653d6633fc3eb3277a9d7a8e6e6567ec75cfe60740a65a1b541223d5c63623"
+[2m2025-02-26T09:39:37.391488Z[0m [32m INFO[0m [2mzkopml_cli::prove[0m[2m:[0m Returned public values:
+[2m2025-02-26T09:39:37.391494Z[0m [32m INFO[0m [2mzkopml_cli::prove[0m[2m:[0m Merkle root: "f0c4b404383d6a9cf9cd220237b3c5dad9e410e7fdca48ac58f66e94b5c31624"
+[2m2025-02-26T09:39:37.391495Z[0m [32m INFO[0m [2mzkopml_cli::prove[0m[2m:[0m Leaf indices: [0]
+[2m2025-02-26T09:39:37.391501Z[0m [32m INFO[0m [2mzkopml_cli::prove[0m[2m:[0m Inputs hash: "be7c9f3b068911bc4e4f0a92253667a8661b250d2f82cc6f402efd7563939834"
+[2m2025-02-26T09:39:37.391503Z[0m [32m INFO[0m [2mzkopml_cli::prove[0m[2m:[0m Outputs hash: "24653d6633fc3eb3277a9d7a8e6e6567ec75cfe60740a65a1b541223d5c63623"
+stdin: 8
+32
+16
+40
+8
+104
+12638
+317
+117
+[2m2025-02-26T09:39:37.542144Z[0m [32m INFO[0m [2mzkopml_cli::prove[0m[2m:[0m Using the local/cpu SP1 prover.
+[2m2025-02-26T09:39:38.188931Z[0m [32m INFO[0m [2msp1_prover[0m[2m:[0m vk verification: true
+[2m2025-02-26T09:39:40.482642Z[0m [32m INFO[0m [2mzkopml_cli::prove[0m[2m:[0m Executing the SP1 program. Proving ONNX operator: NodeProto { input: ["/convs.0/Conv_output_0"], output: ["/Relu_output_0"], name: "/Relu", op_type: "Relu", domain: "", attribute: [], doc_string: "" }
+[2m2025-02-26T09:39:40.523845Z[0m [32m INFO[0m [1mexecute[0m[2m:[0m [2msp1_core_executor::executor[0m[2m:[0m clk = 0 pc = 0x2219d4    
+stderr: WARNING: Using insecure random number generator.
+[2m2025-02-26T09:39:40.699613Z[0m [32m INFO[0m [2mzkopml_cli::prove[0m[2m:[0m executed program with 6717963 cycles
+[2m2025-02-26T09:39:40.699640Z[0m [32m INFO[0m [2mzkopml_cli::prove[0m[2m:[0m Raw public values: "0xf0c4b404383d6a9cf9cd220237b3c5dad9e410e7fdca48ac58f66e94b5c316240100000000000000010000000000000024653d6633fc3eb3277a9d7a8e6e6567ec75cfe60740a65a1b541223d5c6362336cfeff769ec13767dd396d6a5c8c4f69972217b0be40229bb67ac25562bdc24"
+[2m2025-02-26T09:39:40.699646Z[0m [32m INFO[0m [2mzkopml_cli::prove[0m[2m:[0m Returned public values:
+[2m2025-02-26T09:39:40.699649Z[0m [32m INFO[0m [2mzkopml_cli::prove[0m[2m:[0m Merkle root: "f0c4b404383d6a9cf9cd220237b3c5dad9e410e7fdca48ac58f66e94b5c31624"
+[2m2025-02-26T09:39:40.699651Z[0m [32m INFO[0m [2mzkopml_cli::prove[0m[2m:[0m Leaf indices: [1]
+[2m2025-02-26T09:39:40.699654Z[0m [32m INFO[0m [2mzkopml_cli::prove[0m[2m:[0m Inputs hash: "24653d6633fc3eb3277a9d7a8e6e6567ec75cfe60740a65a1b541223d5c63623"
+[2m2025-02-26T09:39:40.699655Z[0m [32m INFO[0m [2mzkopml_cli::prove[0m[2m:[0m Outputs hash: "36cfeff769ec13767dd396d6a5c8c4f69972217b0be40229bb67ac25562bdc24"
+stdin: 8
+32
+16
+40
+8
+104
+8
+371
+333
+[2m2025-02-26T09:39:40.840416Z[0m [32m INFO[0m [2mzkopml_cli::prove[0m[2m:[0m Using the local/cpu SP1 prover.
+[2m2025-02-26T09:39:41.566751Z[0m [32m INFO[0m [2msp1_prover[0m[2m:[0m vk verification: true
+[2m2025-02-26T09:39:43.954535Z[0m [32m INFO[0m [2mzkopml_cli::prove[0m[2m:[0m Executing the SP1 program. Proving ONNX operator: NodeProto { input: [], output: ["/Constant_output_0"], name: "/Constant", op_type: "Constant", domain: "", attribute: [AttributeProto { name: "value", ref_attr_name: "", doc_string: "", r#type: Tensor, f: 0.0, i: 0, s: [], t: Some(TensorProto { dims: [2], data_type: 7, segment: None, float_data: [], int32_data: [], string_data: [], int64_data: [], name: "", doc_string: "", raw_data: [255, 255, 255, 255, 255, 255, 255, 255, 32, 6, 0, 0, 0, 0, 0, 0], external_data: [], data_location: Default, double_data: [], uint64_data: [] }), g: None, sparse_tensor: None, tp: None, floats: [], ints: [], strings: [], tensors: [], graphs: [], sparse_tensors: [], type_protos: [] }], doc_string: "" }
+[2m2025-02-26T09:39:43.995787Z[0m [32m INFO[0m [1mexecute[0m[2m:[0m [2msp1_core_executor::executor[0m[2m:[0m clk = 0 pc = 0x2219d4    
+stderr: WARNING: Using insecure random number generator.
+[2m2025-02-26T09:39:44.002136Z[0m [32m INFO[0m [2mzkopml_cli::prove[0m[2m:[0m executed program with 215522 cycles
+[2m2025-02-26T09:39:44.002155Z[0m [32m INFO[0m [2mzkopml_cli::prove[0m[2m:[0m Raw public values: "0xf0c4b404383d6a9cf9cd220237b3c5dad9e410e7fdca48ac58f66e94b5c316240100000000000000020000000000000036cfeff769ec13767dd396d6a5c8c4f69972217b0be40229bb67ac25562bdc2489ae55f5850e4f5040c5bec141325805a3abaa009319d633cdece0396705451f"
+[2m2025-02-26T09:39:44.002161Z[0m [32m INFO[0m [2mzkopml_cli::prove[0m[2m:[0m Returned public values:
+[2m2025-02-26T09:39:44.002163Z[0m [32m INFO[0m [2mzkopml_cli::prove[0m[2m:[0m Merkle root: "f0c4b404383d6a9cf9cd220237b3c5dad9e410e7fdca48ac58f66e94b5c31624"
+[2m2025-02-26T09:39:44.002165Z[0m [32m INFO[0m [2mzkopml_cli::prove[0m[2m:[0m Leaf indices: [2]
+[2m2025-02-26T09:39:44.002169Z[0m [32m INFO[0m [2mzkopml_cli::prove[0m[2m:[0m Inputs hash: "36cfeff769ec13767dd396d6a5c8c4f69972217b0be40229bb67ac25562bdc24"
+[2m2025-02-26T09:39:44.002171Z[0m [32m INFO[0m [2mzkopml_cli::prove[0m[2m:[0m Outputs hash: "89ae55f5850e4f5040c5bec141325805a3abaa009319d633cdece0396705451f"
+stdin: 8
+32
+16
+40
+8
+104
+12704
+429
+144
+[2m2025-02-26T09:39:44.150356Z[0m [32m INFO[0m [2mzkopml_cli::prove[0m[2m:[0m Using the local/cpu SP1 prover.
+[2m2025-02-26T09:39:44.850280Z[0m [32m INFO[0m [2msp1_prover[0m[2m:[0m vk verification: true
+[2m2025-02-26T09:39:47.153082Z[0m [32m INFO[0m [2mzkopml_cli::prove[0m[2m:[0m Executing the SP1 program. Proving ONNX operator: NodeProto { input: ["/Relu_output_0", "/Constant_output_0"], output: ["/Reshape_output_0"], name: "/Reshape", op_type: "Reshape", domain: "", attribute: [], doc_string: "" }
+[2m2025-02-26T09:39:47.191957Z[0m [32m INFO[0m [1mexecute[0m[2m:[0m [2msp1_core_executor::executor[0m[2m:[0m clk = 0 pc = 0x2219d4    
+stderr: WARNING: Using insecure random number generator.
+[2m2025-02-26T09:39:47.368847Z[0m [32m INFO[0m [2mzkopml_cli::prove[0m[2m:[0m executed program with 6634570 cycles
+[2m2025-02-26T09:39:47.368868Z[0m [32m INFO[0m [2mzkopml_cli::prove[0m[2m:[0m Raw public values: "0xf0c4b404383d6a9cf9cd220237b3c5dad9e410e7fdca48ac58f66e94b5c316240100000000000000030000000000000089ae55f5850e4f5040c5bec141325805a3abaa009319d633cdece0396705451fdc946fd64836544c8d2c9449f58b3e0e96548b787068859403759fc0590c81bf"
+[2m2025-02-26T09:39:47.368875Z[0m [32m INFO[0m [2mzkopml_cli::prove[0m[2m:[0m Returned public values:
+[2m2025-02-26T09:39:47.368878Z[0m [32m INFO[0m [2mzkopml_cli::prove[0m[2m:[0m Merkle root: "f0c4b404383d6a9cf9cd220237b3c5dad9e410e7fdca48ac58f66e94b5c31624"
+[2m2025-02-26T09:39:47.368881Z[0m [32m INFO[0m [2mzkopml_cli::prove[0m[2m:[0m Leaf indices: [3]
+[2m2025-02-26T09:39:47.368884Z[0m [32m INFO[0m [2mzkopml_cli::prove[0m[2m:[0m Inputs hash: "89ae55f5850e4f5040c5bec141325805a3abaa009319d633cdece0396705451f"
+[2m2025-02-26T09:39:47.368886Z[0m [32m INFO[0m [2mzkopml_cli::prove[0m[2m:[0m Outputs hash: "dc946fd64836544c8d2c9449f58b3e0e96548b787068859403759fc0590c81bf"
+stdin: 8
+32
+16
+40
+8
+40
+1267955
+486
+478
+[2m2025-02-26T09:39:47.512490Z[0m [32m INFO[0m [2mzkopml_cli::prove[0m[2m:[0m Using the local/cpu SP1 prover.
+[2m2025-02-26T09:39:48.137920Z[0m [32m INFO[0m [2msp1_prover[0m[2m:[0m vk verification: true
+[2m2025-02-26T09:39:50.286421Z[0m [32m INFO[0m [2mzkopml_cli::prove[0m[2m:[0m Executing the SP1 program. Proving ONNX operator: NodeProto { input: ["/Reshape_output_0", "fc.weight", "fc.bias"], output: ["output"], name: "/fc/Gemm", op_type: "Gemm", domain: "", attribute: [AttributeProto { name: "alpha", ref_attr_name: "", doc_string: "", r#type: Float, f: 1.0, i: 0, s: [], t: None, g: None, sparse_tensor: None, tp: None, floats: [], ints: [], strings: [], tensors: [], graphs: [], sparse_tensors: [], type_protos: [] }, AttributeProto { name: "beta", ref_attr_name: "", doc_string: "", r#type: Float, f: 1.0, i: 0, s: [], t: None, g: None, sparse_tensor: None, tp: None, floats: [], ints: [], strings: [], tensors: [], graphs: [], sparse_tensors: [], type_protos: [] }, AttributeProto { name: "transB", ref_attr_name: "", doc_string: "", r#type: Int, f: 0.0, i: 1, s: [], t: None, g: None, sparse_tensor: None, tp: None, floats: [], ints: [], strings: [], tensors: [], graphs: [], sparse_tensors: [], type_protos: [] }], doc_string: "" }
+[2m2025-02-26T09:39:50.327825Z[0m [32m INFO[0m [1mexecute[0m[2m:[0m [2msp1_core_executor::executor[0m[2m:[0m clk = 0 pc = 0x2219d4    
+stderr: WARNING: Using insecure random number generator.
+[2m2025-02-26T09:39:50.566116Z[0m [32m INFO[0m [1mexecute[0m[2m:[0m [2msp1_core_executor::executor[0m[2m:[0m clk = 10000000 pc = 0x4330c4    
+[2m2025-02-26T09:39:50.787992Z[0m [32m INFO[0m [1mexecute[0m[2m:[0m [2msp1_core_executor::executor[0m[2m:[0m clk = 20000000 pc = 0x4356d4    
+[2m2025-02-26T09:39:51.045501Z[0m [32m INFO[0m [1mexecute[0m[2m:[0m [2msp1_core_executor::executor[0m[2m:[0m clk = 30000000 pc = 0x3e6f78    
+[2m2025-02-26T09:39:51.313871Z[0m [32m INFO[0m [1mexecute[0m[2m:[0m [2msp1_core_executor::executor[0m[2m:[0m clk = 40000000 pc = 0x2218fc    
+[2m2025-02-26T09:39:51.572686Z[0m [32m INFO[0m [1mexecute[0m[2m:[0m [2msp1_core_executor::executor[0m[2m:[0m clk = 50000000 pc = 0x432e38    
+[2m2025-02-26T09:39:51.832991Z[0m [32m INFO[0m [1mexecute[0m[2m:[0m [2msp1_core_executor::executor[0m[2m:[0m clk = 60000000 pc = 0x3e66cc    
+[2m2025-02-26T09:39:52.093276Z[0m [32m INFO[0m [1mexecute[0m[2m:[0m [2msp1_core_executor::executor[0m[2m:[0m clk = 70000000 pc = 0x432cac    
+[2m2025-02-26T09:39:52.360068Z[0m [32m INFO[0m [1mexecute[0m[2m:[0m [2msp1_core_executor::executor[0m[2m:[0m clk = 80000000 pc = 0x432c98    
+[2m2025-02-26T09:39:52.618618Z[0m [32m INFO[0m [1mexecute[0m[2m:[0m [2msp1_core_executor::executor[0m[2m:[0m clk = 90000000 pc = 0x3e6820    
+[2m2025-02-26T09:39:52.868939Z[0m [32m INFO[0m [1mexecute[0m[2m:[0m [2msp1_core_executor::executor[0m[2m:[0m clk = 100000000 pc = 0x432c98    
+[2m2025-02-26T09:39:53.124292Z[0m [32m INFO[0m [1mexecute[0m[2m:[0m [2msp1_core_executor::executor[0m[2m:[0m clk = 110000000 pc = 0x218e2c    
+[2m2025-02-26T09:39:53.379989Z[0m [32m INFO[0m [1mexecute[0m[2m:[0m [2msp1_core_executor::executor[0m[2m:[0m clk = 120000000 pc = 0x221874    
+[2m2025-02-26T09:39:53.633483Z[0m [32m INFO[0m [1mexecute[0m[2m:[0m [2msp1_core_executor::executor[0m[2m:[0m clk = 130000000 pc = 0x432cf8    
+[2m2025-02-26T09:39:53.888436Z[0m [32m INFO[0m [1mexecute[0m[2m:[0m [2msp1_core_executor::executor[0m[2m:[0m clk = 140000000 pc = 0x221958    
+[2m2025-02-26T09:39:54.140962Z[0m [32m INFO[0m [1mexecute[0m[2m:[0m [2msp1_core_executor::executor[0m[2m:[0m clk = 150000000 pc = 0x22191c    
+[2m2025-02-26T09:39:54.395087Z[0m [32m INFO[0m [1mexecute[0m[2m:[0m [2msp1_core_executor::executor[0m[2m:[0m clk = 160000000 pc = 0x432cb4    
+[2m2025-02-26T09:39:54.642090Z[0m [32m INFO[0m [1mexecute[0m[2m:[0m [2msp1_core_executor::executor[0m[2m:[0m clk = 170000000 pc = 0x3e70cc    
+[2m2025-02-26T09:39:54.890592Z[0m [32m INFO[0m [1mexecute[0m[2m:[0m [2msp1_core_executor::executor[0m[2m:[0m clk = 180000000 pc = 0x432d4c    
+[2m2025-02-26T09:39:55.140661Z[0m [32m INFO[0m [1mexecute[0m[2m:[0m [2msp1_core_executor::executor[0m[2m:[0m clk = 190000000 pc = 0x3e5bb0    
+[2m2025-02-26T09:39:55.389896Z[0m [32m INFO[0m [1mexecute[0m[2m:[0m [2msp1_core_executor::executor[0m[2m:[0m clk = 200000000 pc = 0x432d74    
+[2m2025-02-26T09:39:55.637328Z[0m [32m INFO[0m [1mexecute[0m[2m:[0m [2msp1_core_executor::executor[0m[2m:[0m clk = 210000000 pc = 0x432d40    
+[2m2025-02-26T09:39:55.882379Z[0m [32m INFO[0m [1mexecute[0m[2m:[0m [2msp1_core_executor::executor[0m[2m:[0m clk = 220000000 pc = 0x432e30    
+[2m2025-02-26T09:39:56.128199Z[0m [32m INFO[0m [1mexecute[0m[2m:[0m [2msp1_core_executor::executor[0m[2m:[0m clk = 230000000 pc = 0x432d0c    
+[2m2025-02-26T09:39:56.375753Z[0m [32m INFO[0m [1mexecute[0m[2m:[0m [2msp1_core_executor::executor[0m[2m:[0m clk = 240000000 pc = 0x432cb0    
+[2m2025-02-26T09:39:56.627507Z[0m [32m INFO[0m [1mexecute[0m[2m:[0m [2msp1_core_executor::executor[0m[2m:[0m clk = 250000000 pc = 0x3e678c    
+[2m2025-02-26T09:39:56.867471Z[0m [32m INFO[0m [1mexecute[0m[2m:[0m [2msp1_core_executor::executor[0m[2m:[0m clk = 260000000 pc = 0x2216a8    
+[2m2025-02-26T09:39:57.161449Z[0m [32m INFO[0m [1mexecute[0m[2m:[0m [2msp1_core_executor::executor[0m[2m:[0m clk = 270000000 pc = 0x221520    
+[2m2025-02-26T09:39:57.514063Z[0m [32m INFO[0m [1mexecute[0m[2m:[0m [2msp1_core_executor::executor[0m[2m:[0m clk = 280000000 pc = 0x221548    
+[2m2025-02-26T09:39:57.783357Z[0m [32m INFO[0m [1mexecute[0m[2m:[0m [2msp1_core_executor::executor[0m[2m:[0m clk = 290000000 pc = 0x43331c    
+[2m2025-02-26T09:39:57.984132Z[0m [32m INFO[0m [1mexecute[0m[2m:[0m [2msp1_core_executor::executor[0m[2m:[0m clk = 300000000 pc = 0x4332b0    
+[2m2025-02-26T09:39:58.165281Z[0m [32m INFO[0m [2mzkopml_cli::prove[0m[2m:[0m executed program with 308886819 cycles
+[2m2025-02-26T09:39:58.165317Z[0m [32m INFO[0m [2mzkopml_cli::prove[0m[2m:[0m Raw public values: "0xf0c4b404383d6a9cf9cd220237b3c5dad9e410e7fdca48ac58f66e94b5c3162401000000000000000400000000000000dc946fd64836544c8d2c9449f58b3e0e96548b787068859403759fc0590c81bfb1beeb3662c226f4b8444e70086c0342524ca5cc1253b3596bbe6dc37d39c01b"
+[2m2025-02-26T09:39:58.165333Z[0m [32m INFO[0m [2mzkopml_cli::prove[0m[2m:[0m Returned public values:
+[2m2025-02-26T09:39:58.165337Z[0m [32m INFO[0m [2mzkopml_cli::prove[0m[2m:[0m Merkle root: "f0c4b404383d6a9cf9cd220237b3c5dad9e410e7fdca48ac58f66e94b5c31624"
+[2m2025-02-26T09:39:58.165339Z[0m [32m INFO[0m [2mzkopml_cli::prove[0m[2m:[0m Leaf indices: [4]
+[2m2025-02-26T09:39:58.165342Z[0m [32m INFO[0m [2mzkopml_cli::prove[0m[2m:[0m Inputs hash: "dc946fd64836544c8d2c9449f58b3e0e96548b787068859403759fc0590c81bf"
+[2m2025-02-26T09:39:58.165344Z[0m [32m INFO[0m [2mzkopml_cli::prove[0m[2m:[0m Outputs hash: "b1beeb3662c226f4b8444e70086c0342524ca5cc1253b3596bbe6dc37d39c01b"

@@ -70,6 +70,8 @@ impl Model {
                                     "encoder_sequence_length / 2" => 1,
                                     // gte
                                     "sequence_length" => 32,
+                                    // t5
+                                    "encoder_sequence_length" => 2,
                                     _ => anyhow::bail!("unsupported dim param {d:?}"),
                                 })
                             }

@@ -47,127 +47,148 @@ pub async fn prove(args: ProveArgs) -> anyhow::Result<()> {
 
     // Create merkle tree from ONNX operators
     info!("Creating a Merkle tree from the model operators.");
-    let nodes = model.graph().unwrap().node;
-    let merkle_tree = ModelMerkleTree::new(nodes, model.graph().unwrap());
+    let mut nodes = model.graph().unwrap().node;
+    let merkle_tree = ModelMerkleTree::new(nodes.clone(), model.graph().unwrap());
     info!("Merkle root hash: {:?}", merkle_tree.root().encode_hex());
 
-    // Create SP1 proof of execution
-    let node_index = args.operator_index;
-    let mut stdin = SP1Stdin::new();
-    stdin.write(&merkle_tree.root());
-
-    let leaf_indices = vec![node_index];
-    stdin.write(&leaf_indices);
-
-    let leaf_hashes = merkle_tree.leaves_hashes(leaf_indices.clone());
-    stdin.write(&leaf_hashes);
-
-    let total_leaves = merkle_tree.total_leaves();
-    stdin.write(&total_leaves);
-
-    let merkle_proof: Vec<u8> = merkle_tree.prove(leaf_indices).to_bytes();
-    stdin.write(&merkle_proof);
-
-    let mut inputs: HashMap<String, Tensor> = HashMap::new();
-    for t in model.graph().clone().unwrap().initializer.iter() {
-        let tensor = get_tensor(t, t.name.as_str())?;
-        inputs.insert(t.name.to_string(), tensor);
+    if args.operator_index < nodes.len() {
+        nodes = vec![nodes[args.operator_index].clone()];
     }
-    model.prepare_inputs(&mut inputs)?;
-    for i in 0..node_index {
-        let node = model.get_node(i).unwrap();
-        simple_eval_one(&node, &mut inputs)?;
-    }
-    let node = model.get_node(node_index).unwrap();
-    let mut input_hashes = HashMap::new();
-    for (name, tensor) in inputs.iter() {
-        let hash = tensor_hash(tensor);
-        input_hashes.insert(name.clone(), hash);
-    }
-    inputs.retain(|k: &String, _| node.input.contains(k));
-    stdin.write(&inputs);
-    stdin.write(&input_hashes);
 
-    stdin.write(&node);
+    for (i, node) in nodes.iter().enumerate() {
+        // Create SP1 proof of execution
+        let node_index = i;
+        let mut stdin = SP1Stdin::new();
+        stdin.write(&merkle_tree.root());
 
-    if args.sp1_prover == SP1Prover::Cpu {
-        info!("Using the local/cpu SP1 prover.");
-        let client = ProverClient::builder().cpu().build();
-        info!(
-            "Executing the SP1 program. Proving ONNX operator: {:?}",
-            node
-        );
+        let leaf_indices = vec![node_index];
+        stdin.write(&leaf_indices);
 
-        let (mut public_values, report) = client.execute(ELF, &stdin).run().unwrap();
-        info!(
-            "executed program with {} cycles",
-            report.total_instruction_count()
-        );
+        let leaf_hashes = merkle_tree.leaves_hashes(leaf_indices.clone());
+        stdin.write(&leaf_hashes);
 
-        info!("Raw public values: {:?}", public_values.raw());
+        let total_leaves = merkle_tree.total_leaves();
+        stdin.write(&total_leaves);
 
-        let merkle_root_ret = public_values.read::<MerkleTreeHash>();
-        let leaf_indices_ret = public_values.read::<Vec<usize>>();
-        let inputs_hash = public_values.read::<[u8; 32]>();
-        let outputs_hash = public_values.read::<[u8; 32]>();
+        let merkle_proof: Vec<u8> = merkle_tree.prove(leaf_indices).to_bytes();
+        stdin.write(&merkle_proof);
 
-        info!("Returned public values:");
-        info!("Merkle root: {:?}", merkle_root_ret.encode_hex());
-        info!("Leaf indices: {:?}", leaf_indices_ret);
-        info!("Inputs hash: {:?}", inputs_hash.encode_hex());
-        info!("Outputs hash: {:?}", outputs_hash.encode_hex());
+        let mut inputs: HashMap<String, Tensor> = HashMap::new();
+        for t in model.graph().clone().unwrap().initializer.iter() {
+            let tensor = get_tensor(t, t.name.as_str())?;
+            inputs.insert(t.name.to_string(), tensor);
+        }
+        model.prepare_inputs(&mut inputs)?;
+        for j in 0..node_index {
+            let node = model.get_node(j).unwrap();
+            simple_eval_one(&node, &mut inputs)?;
+        }
+        let mut input_hashes = HashMap::new();
+        for (name, tensor) in inputs.iter() {
+            let hash = tensor_hash(tensor);
+            input_hashes.insert(name.clone(), hash);
+        }
+        inputs.retain(|k: &String, _| node.input.contains(k));
+        let mut inputs_raw: HashMap<String, Tensor> = HashMap::new();
+        for (name, tensor) in inputs.iter() {
+            let mut init = false;
+            for t in model.graph().unwrap().initializer.iter() {
+                if name == &t.name {
+                    let mut input_name = name.clone();
+                    input_name.push_str("graph_initializer");
+                    inputs_raw.insert(input_name, tensor.clone());
+                    init = true;
+                    break;
+                }
+            }
+            if !init {
+                inputs_raw.insert(name.clone(), tensor.clone());
+            }
+        }
+        stdin.write(&inputs_raw);
+        stdin.write(&input_hashes);
 
-        let (_, vk) = client.setup(ELF);
-        info!("generated keys (setup), vk: {:?}", vk.bytes32());
-    } else {
-        info!("Using the network SP1 prover.");
-        let client = ProverClient::builder().network().build();
-        info!(
-            "Executing the SP1 program. Proving ONNX operator: {:?}",
-            node
-        );
+        stdin.write(&node);
 
-        let (mut public_values, report) = client.execute(ELF, &stdin).run().unwrap();
-        info!(
-            "executed program with {} cycles",
-            report.total_instruction_count()
-        );
+        if args.sp1_prover == SP1Prover::Cpu {
+            info!("Using the local/cpu SP1 prover.");
+            let client = ProverClient::builder().cpu().build();
+            info!(
+                "Executing the SP1 program. Proving ONNX operator: {:?}",
+                node
+            );
 
-        info!("Raw public values: {:?}", public_values.raw());
+            let (mut public_values, report) = client.execute(ELF, &stdin).run().unwrap();
+            info!(
+                "executed program with {} cycles",
+                report.total_instruction_count()
+            );
 
-        let merkle_root_ret = public_values.read::<MerkleTreeHash>();
-        let leaf_indices_ret = public_values.read::<Vec<usize>>();
-        let inputs_hash = public_values.read::<[u8; 32]>();
-        let outputs_hash = public_values.read::<[u8; 32]>();
+            info!("Raw public values: {:?}", public_values.raw());
 
-        info!("Returned public values:");
-        info!("Merkle root: {:?}", merkle_root_ret.encode_hex());
-        info!("Leaf indices: {:?}", leaf_indices_ret);
-        info!("Inputs hash: {:?}", inputs_hash.encode_hex());
-        info!("Outputs hash: {:?}", outputs_hash.encode_hex());
+            let merkle_root_ret = public_values.read::<MerkleTreeHash>();
+            let leaf_indices_ret = public_values.read::<Vec<usize>>();
+            let inputs_hash = public_values.read::<[u8; 32]>();
+            let outputs_hash = public_values.read::<[u8; 32]>();
 
-        let (pk, vk) = client.setup(ELF);
-        info!("generated keys (setup)");
+            info!("Returned public values:");
+            info!("Merkle root: {:?}", merkle_root_ret.encode_hex());
+            info!("Leaf indices: {:?}", leaf_indices_ret);
+            info!("Inputs hash: {:?}", inputs_hash.encode_hex());
+            info!("Outputs hash: {:?}", outputs_hash.encode_hex());
 
-        let program_hash = client.register_program(&vk, ELF).await?;
-        info!("registered program with hash: {:?}", program_hash);
+            let (_, vk) = client.setup(ELF);
+            info!("generated keys (setup), vk: {:?}", vk.bytes32());
+        } else {
+            info!("Using the network SP1 prover.");
+            let client = ProverClient::builder().network().build();
+            info!(
+                "Executing the SP1 program. Proving ONNX operator: {:?}",
+                node
+            );
 
-        let proof = client
-            .prove(&pk, &stdin)
-            .cycle_limit(1_000_000_000)
-            .strategy(FulfillmentStrategy::Hosted)
-            .skip_simulation(true)
-            .plonk()
-            .run()
-            .unwrap();
-        info!("generated proof");
+            let (mut public_values, report) = client.execute(ELF, &stdin).run().unwrap();
+            info!(
+                "executed program with {} cycles",
+                report.total_instruction_count()
+            );
 
-        let proof_bytes = proof.bytes();
-        info!("proof: 0x{}", proof_bytes.encode_hex());
+            info!("Raw public values: {:?}", public_values.raw());
 
-        client.verify(&proof, &vk).expect("verification failed");
+            let merkle_root_ret = public_values.read::<MerkleTreeHash>();
+            let leaf_indices_ret = public_values.read::<Vec<usize>>();
+            let inputs_hash = public_values.read::<[u8; 32]>();
+            let outputs_hash = public_values.read::<[u8; 32]>();
 
-        info!("verified proof");
+            info!("Returned public values:");
+            info!("Merkle root: {:?}", merkle_root_ret.encode_hex());
+            info!("Leaf indices: {:?}", leaf_indices_ret);
+            info!("Inputs hash: {:?}", inputs_hash.encode_hex());
+            info!("Outputs hash: {:?}", outputs_hash.encode_hex());
+
+            let (pk, vk) = client.setup(ELF);
+            info!("generated keys (setup)");
+
+            let program_hash = client.register_program(&vk, ELF).await?;
+            info!("registered program with hash: {:?}", program_hash);
+
+            let proof = client
+                .prove(&pk, &stdin)
+                .cycle_limit(1_000_000_000)
+                .strategy(FulfillmentStrategy::Hosted)
+                .skip_simulation(true)
+                .plonk()
+                .run()
+                .unwrap();
+            info!("generated proof");
+
+            let proof_bytes = proof.bytes();
+            info!("proof: 0x{}", proof_bytes.encode_hex());
+
+            client.verify(&proof, &vk).expect("verification failed");
+
+            info!("verified proof");
+        }
     }
 
     Ok(())

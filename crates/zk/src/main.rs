@@ -17,9 +17,23 @@ pub fn main() {
     let merkle_proof = sp1_zkvm::io::read::<Vec<u8>>();
 
     // read onnx data
-    let mut inputs = sp1_zkvm::io::read::<HashMap<String, Tensor>>();
+    let inputs_raw = sp1_zkvm::io::read::<HashMap<String, Tensor>>();
     let mut inputs_hashes = sp1_zkvm::io::read::<HashMap<String, [u8; 32]>>();
     let node = sp1_zkvm::io::read::<NodeProto>();
+
+    let mut inputs: HashMap<String, Tensor> = HashMap::new();
+    let mut graph_initializers = Vec::new();
+
+    for (name, tensor) in inputs_raw.iter() {
+        let mut input_name = String::new();
+        if name.ends_with("graph_initializer") {
+            input_name.push_str(name.replace("graph_initializer", "").as_str());
+            graph_initializers.push(input_name.clone());
+        } else {
+            input_name.push_str(name.as_str());
+        }
+        inputs.insert(input_name, tensor.clone());
+    }
 
     // commit to certain values (public values)
     sp1_zkvm::io::commit(&merkle_root);
@@ -42,13 +56,15 @@ pub fn main() {
     let mut weights_str = String::new();
     for input in node.input.iter() {
         for (name, tensor) in inputs.iter() {
-            if input != "input" && input == name && !input.contains("output") {
-                weights_str.push_str(serde_json::to_string(&tensor).unwrap().as_str());
-                break;
-            } else {
-                // verify that we are working with correct input/output values
-                let hash = tensor_hash(tensor);
-                assert!(hash == inputs_hashes.get(name).unwrap().clone());
+            if input == name {
+                if graph_initializers.contains(&name) {
+                    weights_str.push_str(serde_json::to_string(&tensor).unwrap().as_str());
+                    break;
+                } else {
+                    // verify that we are working with correct input/output values
+                    let hash = tensor_hash(tensor);
+                    assert!(hash == inputs_hashes.get(name).unwrap().clone());
+                }
             }
         }
     }

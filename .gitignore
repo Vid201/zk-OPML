@@ -5,3 +5,4 @@ target/
 # onnx models
 testdata/whisper/network.onnx
 testdata/gte/network.onnx
+testdata/t5/network.onnx

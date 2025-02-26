@@ -323,7 +323,23 @@ pub async fn verify(args: VerifyArgs) -> anyhow::Result<()> {
                                 let mut inputs =
                                     inference_data.get(&inference_id).unwrap()[mid].clone();
                                 inputs.retain(|k: &String, _| node.input.contains(k));
-                                stdin.write(&inputs);
+                                let mut inputs_raw: HashMap<String, Tensor> = HashMap::new();
+                                for (name, tensor) in inputs.iter() {
+                                    let mut init = false;
+                                    for t in model.graph().unwrap().initializer.iter() {
+                                        if name == &t.name {
+                                            let mut input_name = name.clone();
+                                            input_name.push_str("graph_initializer");
+                                            inputs_raw.insert(input_name, tensor.clone());
+                                            init = true;
+                                            break;
+                                        }
+                                    }
+                                    if !init {
+                                        inputs_raw.insert(name.clone(), tensor.clone());
+                                    }
+                                }
+                                stdin.write(&inputs_raw);
 
                                 // Write inputs hashes
                                 stdin
