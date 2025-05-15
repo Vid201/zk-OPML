@@ -40,7 +40,7 @@ pub struct DeployArgs {
     pub response_window: u64,
 }
 
-const ELF: &[u8] = include_elf!("zkopml-sp1");
+const ELF: &[u8] = include_elf!("zkopml-zk");
 
 pub async fn deploy(args: DeployArgs) -> anyhow::Result<()> {
     // Initialize the owner wallet

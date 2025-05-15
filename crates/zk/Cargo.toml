@@ -1,7 +1,8 @@
 [package]
-name = "zkopml-sp1"
-version = "0.1.0"
-edition = "2021"
+name = "zkopml-zk"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
 
 [dependencies]
 candle-core.workspace = true

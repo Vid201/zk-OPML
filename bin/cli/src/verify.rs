@@ -65,7 +65,7 @@ sol!(
     event ChallengeResolved(uint256 challengeId, bool success, address winner);
 );
 
-const ELF: &[u8] = include_elf!("zkopml-sp1");
+const ELF: &[u8] = include_elf!("zkopml-zk");
 
 pub async fn verify(args: VerifyArgs) -> anyhow::Result<()> {
     // Initialize the user wallet
@@ -212,7 +212,10 @@ pub async fn verify(args: VerifyArgs) -> anyhow::Result<()> {
             continue;
         }
 
-        info!("Output data does not match the expected result, challenging");
+        info!(
+            "Output data does not match the expected result, challenging inference {}",
+            inference_id
+        );
         std::thread::sleep(std::time::Duration::from_secs(10));
         let fault_proof =
             zkopml_contracts::FaultProof::new(args.fault_proof_address, user_provider.clone());

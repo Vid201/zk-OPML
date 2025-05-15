@@ -81,7 +81,6 @@ impl Model {
                 }
                 type_ => anyhow::bail!("unsupported input type {type_:?}"),
             };
-            // println!("input {}: {value:?}", input.name);
             inputs.insert(input.name.clone(), value);
         }
 

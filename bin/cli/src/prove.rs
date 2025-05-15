@@ -36,7 +36,7 @@ pub struct ProveArgs {
     pub sp1_prover: SP1Prover,
 }
 
-const ELF: &[u8] = include_elf!("zkopml-sp1");
+const ELF: &[u8] = include_elf!("zkopml-zk");
 
 pub async fn prove(args: ProveArgs) -> anyhow::Result<()> {
     // Load the model and perform the inference
@@ -48,20 +48,21 @@ pub async fn prove(args: ProveArgs) -> anyhow::Result<()> {
     // Create merkle tree from ONNX operators
     info!("Creating a Merkle tree from the model operators.");
     let mut nodes = model.graph().unwrap().node;
+    let mut nodes_indices: Vec<usize> = (0..nodes.len()).collect();
     let merkle_tree = ModelMerkleTree::new(nodes.clone(), model.graph().unwrap());
     info!("Merkle root hash: {:?}", merkle_tree.root().encode_hex());
 
     if args.operator_index < nodes.len() {
         nodes = vec![nodes[args.operator_index].clone()];
+        nodes_indices = vec![args.operator_index];
     }
 
-    for (i, node) in nodes.iter().enumerate() {
+    for (node, node_index) in nodes.iter().zip(nodes_indices.iter()) {
         // Create SP1 proof of execution
-        let node_index = i;
         let mut stdin = SP1Stdin::new();
         stdin.write(&merkle_tree.root());
 
-        let leaf_indices = vec![node_index];
+        let leaf_indices = vec![*node_index];
         stdin.write(&leaf_indices);
 
         let leaf_hashes = merkle_tree.leaves_hashes(leaf_indices.clone());
@@ -79,7 +80,7 @@ pub async fn prove(args: ProveArgs) -> anyhow::Result<()> {
             inputs.insert(t.name.to_string(), tensor);
         }
         model.prepare_inputs(&mut inputs)?;
-        for j in 0..node_index {
+        for j in 0..*node_index {
             let node = model.get_node(j).unwrap();
             simple_eval_one(&node, &mut inputs)?;
         }

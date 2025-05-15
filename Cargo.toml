@@ -2,6 +2,11 @@
 resolver = "2"
 members = ["bin/*", "contracts", "crates/*"]
 
+[workspace.package]
+version = "0.1.0"
+edition = "2021"
+license = "MIT"
+
 [workspace.dependencies]
 alloy = { version = "0.9.1", features = ["full"] }
 anyhow = "1.0.86"
@@ -19,7 +24,7 @@ tracing-log = "0.2.0"
 tracing-subscriber = { version = "0.3", features = ["env-filter"] }
 
 rs_merkle = "1.4.2"
-sha2 = { git = "https://github.com/sp1-patches/RustCrypto-hashes", package = "sha2", tag = "patch-sha2-0.10.8-sp1-4.0.0" }
+sha2 = "0.10.8"
 
 candle-core = { git = "https://github.com/Vid201/candle/", branch = "feat/onnx_eval_one" }
 candle-onnx = { git = "https://github.com/Vid201/candle/", branch = "feat/onnx_eval_one" }
@@ -31,10 +36,11 @@ sp1-zkvm = "4.0.1"
 zkopml-contracts = { path = "contracts" }
 zkopml-ml = { path = "crates/ml" }
 
-# TODO: uncomment optimizations
-# [profile.dev]
-# opt-level = 3
+[patch.crates-io]
+sha2 = { git = "https://github.com/sp1-patches/RustCrypto-hashes", package = "sha2", tag = "patch-sha2-0.10.8-sp1-4.0.0" }
 
-[profile.release]
-debug = 1
-# lto = true
+[profile.release-client-lto]
+inherits = "release"
+panic = "abort"
+codegen-units = 1
+lto = "fat"

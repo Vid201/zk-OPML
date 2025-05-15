@@ -81,5 +81,13 @@ pub async fn register(args: RegisterArgs) -> anyhow::Result<()> {
     let model_id = U256::from(model_registry.modelCounter().call().await?._0) - U256::from(1);
     info!("Model registered with ID: {}", model_id);
 
+    let model = model_registry.getModel(model_id).call().await?;
+    info!("Model info:");
+    info!("  ID: {}", model.model.id);
+    info!("  URI: {}", model.model.uri);
+    info!("  Registrar: {}", model.model.registrar);
+    info!("  Root: {}", model.model.root.encode_hex());
+    info!("  Number of operators: {}", model.model.numOperators);
+
     Ok(())
 }
