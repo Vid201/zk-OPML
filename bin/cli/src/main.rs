@@ -1,6 +1,6 @@
 use clap::Parser;
-use zkopml_cli::tracing_util::init_tracing_subscriber;
 use zkopml_cli::Cli;
+use zkopml_cli::tracing_util::init_tracing_subscriber;
 
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {

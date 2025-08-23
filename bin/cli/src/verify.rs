@@ -13,7 +13,7 @@ use candle_core::Tensor;
 use candle_onnx::eval::{get_tensor, simple_eval_one};
 use futures_util::StreamExt;
 use sha2::Digest;
-use sp1_sdk::{include_elf, network::FulfillmentStrategy, Prover, ProverClient, SP1Stdin};
+use sp1_sdk::{Prover, ProverClient, SP1Stdin, include_elf, network::FulfillmentStrategy};
 use std::{collections::HashMap, str::FromStr};
 use tracing::info;
 use zkopml_ml::{data::tensor_hash, merkle::ModelMerkleTree, onnx::load_onnx_model};
@@ -73,9 +73,8 @@ pub async fn verify(args: VerifyArgs) -> anyhow::Result<()> {
     let user_wallet = EthereumWallet::from(user_signer);
     let ws_connect = WsConnect::new(args.eth_node_address);
     let user_provider = ProviderBuilder::new()
-        .with_recommended_fillers()
         .wallet(&user_wallet)
-        .on_ws(ws_connect)
+        .connect_ws(ws_connect)
         .await?;
     info!("User address: {}", user_wallet.default_signer().address());
 
@@ -94,7 +93,7 @@ pub async fn verify(args: VerifyArgs) -> anyhow::Result<()> {
     while let Some(log) = stream.next().await {
         // Parse the data
         info!("Received inference response: {:?}", log);
-        let response = InferenceResponded::decode_log_data(log.data(), false);
+        let response = InferenceResponded::decode_log_data(log.data());
         if response.is_err() {
             info!("Failed to decode the response data");
             continue;
@@ -114,7 +113,7 @@ pub async fn verify(args: VerifyArgs) -> anyhow::Result<()> {
             user_provider.clone(),
         );
         let inference = model_registry.getInference(inference_id).call().await?;
-        let input_data = inference.inference.inputData;
+        let input_data = inference.inputData;
         info!("Inference input data: {:?}", input_data);
 
         // Perform the inference
@@ -226,8 +225,7 @@ pub async fn verify(args: VerifyArgs) -> anyhow::Result<()> {
         let tx = fault_proof.createChallenge(inference_id).send().await?;
         info!("Transaction hash: {}", tx.tx_hash());
         std::thread::sleep(std::time::Duration::from_secs(10));
-        let challenge_id =
-            U256::from(fault_proof.challengeCounter().call().await?._0) - U256::from(1);
+        let challenge_id = fault_proof.challengeCounter().call().await? - U256::from(1);
         info!("Challenge created with id: {}", challenge_id);
 
         challenges.push(challenge_id);
@@ -246,7 +244,12 @@ pub async fn verify(args: VerifyArgs) -> anyhow::Result<()> {
             .send()
             .await?;
         info!("Transaction hash: {}", tx.tx_hash());
-        info!("Operator execution for operator {} proposed with input data hash: {:?}, output data hash: {:?}", mid, input_data_hash.encode_hex(), output_data_hash.encode_hex());
+        info!(
+            "Operator execution for operator {} proposed with input data hash: {:?}, output data hash: {:?}",
+            mid,
+            input_data_hash.encode_hex(),
+            output_data_hash.encode_hex()
+        );
 
         // Listen for challenge requests
         let challenge_request_filter = Filter::new()
@@ -263,7 +266,7 @@ pub async fn verify(args: VerifyArgs) -> anyhow::Result<()> {
             info!("Received challenge event: {:?}", log);
             match log.topic0() {
                 Some(&OperatorExecutionResponded::SIGNATURE_HASH) => {
-                    let response = OperatorExecutionResponded::decode_log_data(log.data(), false);
+                    let response = OperatorExecutionResponded::decode_log_data(log.data());
                     if response.is_err() {
                         info!("Failed to decode the response data");
                         continue;
@@ -273,7 +276,10 @@ pub async fn verify(args: VerifyArgs) -> anyhow::Result<()> {
                     if challenges.contains(&response.challengeId) {
                         let input_data_match = response.input;
                         let output_data_match = response.output;
-                        info!("Operator execution response: input data match: {}, output data match: {}", input_data_match, output_data_match);
+                        info!(
+                            "Operator execution response: input data match: {}, output data match: {}",
+                            input_data_match, output_data_match
+                        );
                         match (input_data_match, output_data_match) {
                             (true, true) => {
                                 // Move right
@@ -281,7 +287,12 @@ pub async fn verify(args: VerifyArgs) -> anyhow::Result<()> {
                                 mid = (low + high) / 2;
                                 let (input_data_hash, output_data_hash) =
                                     inference_hashes.get(&inference_id).unwrap()[mid];
-                                info!("Operator execution for operator {} proposed with input data hash: {:?}, output data hash: {:?}", mid, input_data_hash.encode_hex(), output_data_hash.encode_hex());
+                                info!(
+                                    "Operator execution for operator {} proposed with input data hash: {:?}, output data hash: {:?}",
+                                    mid,
+                                    input_data_hash.encode_hex(),
+                                    output_data_hash.encode_hex()
+                                );
                                 let tx = fault_proof
                                     .proposeOperatorExecution(
                                         challenge_id,
@@ -385,7 +396,13 @@ pub async fn verify(args: VerifyArgs) -> anyhow::Result<()> {
 
                                 let proof_bytes = proof.bytes();
 
-                                info!("Resolving the challenge id {} for operator {} with SP1 proof verification (public values: {}, proof: {})", challenge_id, mid, public_values.raw(), proof.bytes().encode_hex());
+                                info!(
+                                    "Resolving the challenge id {} for operator {} with SP1 proof verification (public values: {}, proof: {})",
+                                    challenge_id,
+                                    mid,
+                                    public_values.raw(),
+                                    proof.bytes().encode_hex()
+                                );
                                 let tx = fault_proof
                                     .resolveOpenChallenge(
                                         challenge_id,
@@ -402,7 +419,12 @@ pub async fn verify(args: VerifyArgs) -> anyhow::Result<()> {
                                 mid = (low + high) / 2;
                                 let (input_data_hash, output_data_hash) =
                                     inference_hashes.get(&inference_id).unwrap()[mid];
-                                info!("Operator execution for operator {} proposed with input data hash: {:?}, output data hash: {:?}", mid, input_data_hash.encode_hex(), output_data_hash.encode_hex());
+                                info!(
+                                    "Operator execution for operator {} proposed with input data hash: {:?}, output data hash: {:?}",
+                                    mid,
+                                    input_data_hash.encode_hex(),
+                                    output_data_hash.encode_hex()
+                                );
                                 let tx = fault_proof
                                     .proposeOperatorExecution(
                                         challenge_id,
@@ -417,7 +439,7 @@ pub async fn verify(args: VerifyArgs) -> anyhow::Result<()> {
                     }
                 }
                 Some(&ChallengeResolved::SIGNATURE_HASH) => {
-                    let request = ChallengeResolved::decode_log_data(log.data(), false);
+                    let request = ChallengeResolved::decode_log_data(log.data());
                     if request.is_err() {
                         info!("Failed to decode the request data");
                         continue;

@@ -72,9 +72,8 @@ pub async fn submit(args: SubmitArgs) -> anyhow::Result<()> {
     let user_wallet = EthereumWallet::from(user_signer);
     let ws_connect = WsConnect::new(args.eth_node_address);
     let user_provider = ProviderBuilder::new()
-        .with_recommended_fillers()
         .wallet(&user_wallet)
-        .on_ws(ws_connect)
+        .connect_ws(ws_connect)
         .await?;
     info!("User address: {}", user_wallet.default_signer().address());
 
@@ -93,7 +92,7 @@ pub async fn submit(args: SubmitArgs) -> anyhow::Result<()> {
     while let Some(log) = stream.next().await {
         // Parse the data
         info!("Received inference request: {:?}", log);
-        let request = InferenceRequested::decode_log_data(log.data(), false);
+        let request = InferenceRequested::decode_log_data(log.data());
         if request.is_err() {
             info!("Failed to decode the request data");
             continue;
@@ -245,7 +244,7 @@ pub async fn submit(args: SubmitArgs) -> anyhow::Result<()> {
             info!("Received challenge event: {:?}", log);
             match log.topic0() {
                 Some(&ChallengeCreated::SIGNATURE_HASH) => {
-                    let request = ChallengeCreated::decode_log_data(log.data(), false);
+                    let request = ChallengeCreated::decode_log_data(log.data());
                     if request.is_err() {
                         info!("Failed to decode the request data");
                         continue;
@@ -260,7 +259,7 @@ pub async fn submit(args: SubmitArgs) -> anyhow::Result<()> {
                     }
                 }
                 Some(&OperatorExecutionProposed::SIGNATURE_HASH) => {
-                    let request = OperatorExecutionProposed::decode_log_data(log.data(), false);
+                    let request = OperatorExecutionProposed::decode_log_data(log.data());
                     if request.is_err() {
                         info!("Failed to decode the request data");
                         continue;
@@ -280,7 +279,10 @@ pub async fn submit(args: SubmitArgs) -> anyhow::Result<()> {
                         let output_data_match = output_data_hash == request.outputDataHash;
                         info!(
                             "Operator execution response for challenge id {} at position {}: {}, {}",
-                            request.challengeId, request.operatorPosition, input_data_match, output_data_match
+                            request.challengeId,
+                            request.operatorPosition,
+                            input_data_match,
+                            output_data_match
                         );
                         let tx = fault_proof
                             .respondOperatorExecution(
@@ -295,7 +297,7 @@ pub async fn submit(args: SubmitArgs) -> anyhow::Result<()> {
                     }
                 }
                 Some(&ChallengeResolved::SIGNATURE_HASH) => {
-                    let request = ChallengeResolved::decode_log_data(log.data(), false);
+                    let request = ChallengeResolved::decode_log_data(log.data());
                     if request.is_err() {
                         info!("Failed to decode the request data");
                         continue;

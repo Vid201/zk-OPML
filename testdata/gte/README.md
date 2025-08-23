@@ -1,5 +1,0 @@
-# GTE
-
-https://huggingface.co/Alibaba-NLP/gte-large-en-v1.5
-
-Download the model from the above link and place is in this folder (with name `network.onnx`).

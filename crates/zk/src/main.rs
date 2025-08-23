@@ -3,7 +3,7 @@ sp1_zkvm::entrypoint!(main);
 
 use candle_core::Tensor;
 use candle_onnx::{eval::simple_eval_one, onnx::NodeProto};
-use rs_merkle::{algorithms::Sha256, MerkleProof};
+use rs_merkle::{MerkleProof, algorithms::Sha256};
 use sha2::Digest;
 use std::collections::HashMap;
 use zkopml_ml::{data::tensor_hash, utils::hash_string};

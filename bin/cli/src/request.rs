@@ -44,9 +44,8 @@ pub async fn request(args: RequestArgs) -> anyhow::Result<()> {
     let user_wallet = EthereumWallet::from(user_signer);
     let ws_connect = WsConnect::new(args.eth_node_address);
     let user_provider = ProviderBuilder::new()
-        .with_recommended_fillers()
         .wallet(&user_wallet)
-        .on_ws(ws_connect)
+        .connect_ws(ws_connect)
         .await?;
     info!("User address: {}", user_wallet.default_signer().address());
 
@@ -87,8 +86,7 @@ pub async fn request(args: RequestArgs) -> anyhow::Result<()> {
         .await?;
     info!("Transaction hash: {}", tx.tx_hash());
     std::thread::sleep(std::time::Duration::from_secs(10));
-    let inference_id =
-        U256::from(model_registry.inferenceCounter().call().await?._0) - U256::from(1);
+    let inference_id = model_registry.inferenceCounter().call().await? - U256::from(1);
     info!("Inference request sent with id: {}", inference_id);
 
     // TODO: wait and listen for result

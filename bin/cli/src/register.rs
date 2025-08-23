@@ -39,9 +39,8 @@ pub async fn register(args: RegisterArgs) -> anyhow::Result<()> {
     let user_wallet = EthereumWallet::from(user_signer);
     let ws_connect = WsConnect::new(args.eth_node_address);
     let user_provider = ProviderBuilder::new()
-        .with_recommended_fillers()
         .wallet(&user_wallet)
-        .on_ws(ws_connect)
+        .connect_ws(ws_connect)
         .await?;
     info!("User address: {}", user_wallet.default_signer().address());
 
@@ -78,16 +77,16 @@ pub async fn register(args: RegisterArgs) -> anyhow::Result<()> {
         .await?;
     info!("Transaction hash: {}", tx.tx_hash());
     std::thread::sleep(std::time::Duration::from_secs(10));
-    let model_id = U256::from(model_registry.modelCounter().call().await?._0) - U256::from(1);
+    let model_id = model_registry.modelCounter().call().await? - U256::from(1);
     info!("Model registered with ID: {}", model_id);
 
     let model = model_registry.getModel(model_id).call().await?;
     info!("Model info:");
-    info!("  ID: {}", model.model.id);
-    info!("  URI: {}", model.model.uri);
-    info!("  Registrar: {}", model.model.registrar);
-    info!("  Root: {}", model.model.root.encode_hex());
-    info!("  Number of operators: {}", model.model.numOperators);
+    info!("  ID: {}", model.id);
+    info!("  URI: {}", model.uri);
+    info!("  Registrar: {}", model.registrar);
+    info!("  Merkle root: {}", model.root.encode_hex());
+    info!("  Number of ONNX operators: {}", model.numOperators);
 
     Ok(())
 }

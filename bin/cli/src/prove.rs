@@ -2,7 +2,7 @@ use alloy::hex::ToHexExt;
 use candle_core::Tensor;
 use candle_onnx::eval::{get_tensor, simple_eval_one};
 use sp1_sdk::{
-    include_elf, network::FulfillmentStrategy, HashableKey, Prover, ProverClient, SP1Stdin,
+    HashableKey, Prover, ProverClient, SP1Stdin, include_elf, network::FulfillmentStrategy,
 };
 use std::collections::HashMap;
 use tracing::info;
@@ -28,10 +28,15 @@ pub struct ProveArgs {
     pub model_path: String,
 
     /// Index of the ONNX operator to prove
+    /// If not provided, the prover will prove all operators
     #[clap(long)]
-    pub operator_index: usize,
+    pub operator_index: Option<usize>,
 
     /// Type of SP1 prover
+    /// - `cpu`: Use the local/cpu SP1 prover
+    ///   - Note: When proving with cpu, this will not actually generate all proofs,
+    ///     but will only output the number of cycles for each operator.
+    /// - `network`: Use the network SP1 prover
     #[clap(long, default_value = "cpu")]
     pub sp1_prover: SP1Prover,
 }
@@ -52,9 +57,9 @@ pub async fn prove(args: ProveArgs) -> anyhow::Result<()> {
     let merkle_tree = ModelMerkleTree::new(nodes.clone(), model.graph().unwrap());
     info!("Merkle root hash: {:?}", merkle_tree.root().encode_hex());
 
-    if args.operator_index < nodes.len() {
-        nodes = vec![nodes[args.operator_index].clone()];
-        nodes_indices = vec![args.operator_index];
+    if let Some(operator_index) = args.operator_index {
+        nodes = vec![nodes[operator_index].clone()];
+        nodes_indices = vec![operator_index];
     }
 
     for (node, node_index) in nodes.iter().zip(nodes_indices.iter()) {
@@ -112,7 +117,9 @@ pub async fn prove(args: ProveArgs) -> anyhow::Result<()> {
         stdin.write(&node);
 
         if args.sp1_prover == SP1Prover::Cpu {
-            info!("Using the local/cpu SP1 prover.");
+            info!(
+                "Using the local/cpu SP1 prover. This will not actually generate all proofs, but will only output the number of cycles for each operator."
+            );
             let client = ProverClient::builder().cpu().build();
             info!(
                 "Executing the SP1 program. Proving ONNX operator: {:?}",
@@ -121,7 +128,7 @@ pub async fn prove(args: ProveArgs) -> anyhow::Result<()> {
 
             let (mut public_values, report) = client.execute(ELF, &stdin).run().unwrap();
             info!(
-                "executed program with {} cycles",
+                "Executed program with {} cycles",
                 report.total_instruction_count()
             );
 
@@ -139,7 +146,7 @@ pub async fn prove(args: ProveArgs) -> anyhow::Result<()> {
             info!("Outputs hash: {:?}", outputs_hash.encode_hex());
 
             let (_, vk) = client.setup(ELF);
-            info!("generated keys (setup), vk: {:?}", vk.bytes32());
+            info!("Generated keys (setup), vk: {:?}", vk.bytes32());
         } else {
             info!("Using the network SP1 prover.");
             let client = ProverClient::builder().network().build();
@@ -150,7 +157,7 @@ pub async fn prove(args: ProveArgs) -> anyhow::Result<()> {
 
             let (mut public_values, report) = client.execute(ELF, &stdin).run().unwrap();
             info!(
-                "executed program with {} cycles",
+                "Executed program with {} cycles",
                 report.total_instruction_count()
             );
 
@@ -168,10 +175,10 @@ pub async fn prove(args: ProveArgs) -> anyhow::Result<()> {
             info!("Outputs hash: {:?}", outputs_hash.encode_hex());
 
             let (pk, vk) = client.setup(ELF);
-            info!("generated keys (setup)");
+            info!("Generated keys (setup)");
 
             let program_hash = client.register_program(&vk, ELF).await?;
-            info!("registered program with hash: {:?}", program_hash);
+            info!("Registered program with hash: {:?}", program_hash);
 
             let proof = client
                 .prove(&pk, &stdin)
@@ -181,14 +188,14 @@ pub async fn prove(args: ProveArgs) -> anyhow::Result<()> {
                 .plonk()
                 .run()
                 .unwrap();
-            info!("generated proof");
+            info!("Generated proof");
 
             let proof_bytes = proof.bytes();
-            info!("proof: 0x{}", proof_bytes.encode_hex());
+            info!("Proof: 0x{}", proof_bytes.encode_hex());
 
             client.verify(&proof, &vk).expect("verification failed");
 
-            info!("verified proof");
+            info!("Verified proof");
         }
     }
 

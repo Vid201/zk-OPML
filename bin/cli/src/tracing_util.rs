@@ -1,4 +1,4 @@
-use anyhow::{anyhow, Result};
+use anyhow::{Result, anyhow};
 use log::LevelFilter;
 use tracing::Level;
 use tracing_log::LogTracer;

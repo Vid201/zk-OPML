@@ -6,7 +6,7 @@ use alloy::{
     signers::local::LocalSigner,
 };
 use anyhow::Context;
-use sp1_sdk::{include_elf, HashableKey, Prover, ProverClient};
+use sp1_sdk::{HashableKey, Prover, ProverClient, include_elf};
 use std::str::FromStr;
 use tracing::info;
 
@@ -49,9 +49,8 @@ pub async fn deploy(args: DeployArgs) -> anyhow::Result<()> {
     let owner_wallet = EthereumWallet::from(owner_signer);
     let ws_connect = WsConnect::new(args.eth_node_address);
     let _owner_provider = ProviderBuilder::new()
-        .with_recommended_fillers()
         .wallet(&owner_wallet)
-        .on_ws(ws_connect.clone())
+        .connect_ws(ws_connect.clone())
         .await?;
     info!("Owner address: {}", owner_wallet.default_signer().address());
     // TODO: use owner provider
@@ -61,9 +60,8 @@ pub async fn deploy(args: DeployArgs) -> anyhow::Result<()> {
     let deployer_signer = LocalSigner::from_str(&args.deployer_key)?;
     let deployer_wallet = EthereumWallet::from(deployer_signer);
     let deployer_provider = ProviderBuilder::new()
-        .with_recommended_fillers()
         .wallet(deployer_wallet.clone())
-        .on_ws(ws_connect)
+        .connect_ws(ws_connect)
         .await?;
     info!(
         "Deployer address: {}",
@@ -76,7 +74,10 @@ pub async fn deploy(args: DeployArgs) -> anyhow::Result<()> {
         zkopml_contracts::ModelRegistry::deploy(deployer_provider.clone())
             .await
             .context("ModelRegistry contract deployment failed")?;
-    info!("{:?}", &model_registry_contract.address());
+    info!(
+        "ModelRegistry contract deployed at {:?}",
+        &model_registry_contract.address()
+    );
 
     // Deploy FaultProof contract
     info!("Deploying FaultProof contract.");
@@ -93,7 +94,10 @@ pub async fn deploy(args: DeployArgs) -> anyhow::Result<()> {
     )
     .await
     .context("FaultProof contract deployment failed")?;
-    info!("{:?}", &fault_proof_contract.address());
+    info!(
+        "FaultProof contract deployed at {:?}",
+        &fault_proof_contract.address()
+    );
 
     Ok(())
 }

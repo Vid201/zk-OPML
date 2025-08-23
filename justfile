@@ -3,20 +3,12 @@ set dotenv-load
 
 verbosity := "" # "-v"
 eth_rpc := "ws://127.0.0.1:8546"
-deployer := "0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80"
-owner := "0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80"
-user := "0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80"
-model := "./testdata/variable_cnn/network.onnx"
-# model := "./testdata/t5/network.onnx"
-# model := "./testdata/gte/network.onnx"
-# model := "./testdata/whisper/network.onnx"
-verifier := "0x61EEd5eE968506eB27320FD776Fe14E4842b1990"
-registry := "0xcf7ed3acca5a467e9e704c703e8d87f634fb0fc9"
-fault_proof := "0xdc64a140aa3e981100a9beca4e685f962f0cf6c9"
-model_id := "0"
-challenge_window := "96000"
-response_window := "100"
-operator_index := "2"
+deployer_address := "0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80"
+owner_address := "0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80"
+user_address := "0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80"
+sp1_verifier_smart_contract := "0x61EEd5eE968506eB27320FD776Fe14E4842b1990"
+challenge_window := "5000"
+response_window := "10"
 
 # default recipe to display help information
 default:
@@ -44,15 +36,15 @@ deploy-create2:
 
 deploy-sp1-verifier:
 	cd contracts/foundry/lib/sp1-contracts/contracts && \
-	FOUNDRY_PROFILE=deploy forge script ./script/deploy/SP1VerifierGatewayPlonk.s.sol:SP1VerifierGatewayScript --private-key {{deployer}} --multi --broadcast && \
-	FOUNDRY_PROFILE=deploy forge script ./script/deploy/v4.0.0-rc.3/SP1VerifierPlonk.s.sol:SP1VerifierScript --private-key {{deployer}} --multi --broadcast
+	FOUNDRY_PROFILE=deploy forge script ./script/deploy/SP1VerifierGatewayPlonk.s.sol:SP1VerifierGatewayScript --private-key {{deployer_address}} --multi --broadcast && \
+	FOUNDRY_PROFILE=deploy forge script ./script/deploy/v4.0.0-rc.3/SP1VerifierPlonk.s.sol:SP1VerifierScript --private-key {{deployer_address}} --multi --broadcast
 
-deploy:
+deploy-smart-contracts:
 	./target/release-client-lto/zkopml-cli deploy \
 	--eth-node-address {{eth_rpc}} \
-	--deployer-key {{deployer}} \
-	--owner-key {{owner}} \
-	--sp1-verifier-address {{verifier}} \
+	--deployer-key {{deployer_address}} \
+	--owner-key {{owner_address}} \
+	--sp1-verifier-address {{sp1_verifier_smart_contract}} \
 	--challenge-window {{challenge_window}} \
 	--response-window {{response_window}} \
 	{{verbosity}}
@@ -60,63 +52,63 @@ deploy:
 register:
 	./target/release-client-lto/zkopml-cli register \
 	--eth-node-address {{eth_rpc}} \
-	--model-registry-address {{registry}} \
-	--user-key {{user}} \
-	--model-path {{model}} \
+	--model-registry-address ${MODEL_REGISTRY_SMART_CONTRACT} \
+	--user-key {{user_address}} \
+	--model-path ${MODEL_PATH} \
 	{{verbosity}}
 
-request:
+request model_id:
 	./target/release-client-lto/zkopml-cli request \
 	--eth-node-address {{eth_rpc}} \
-	--model-registry-address {{registry}} \
-	--model-path {{model}} \
-	--user-key {{user}} \
+	--model-registry-address ${MODEL_REGISTRY_SMART_CONTRACT} \
+	--model-path ${MODEL_PATH} \
+	--input-data-path ${INPUT_DATA_PATH} \
+	--user-key {{user_address}} \
 	--model-id {{model_id}} \
 	{{verbosity}}
 
-submit:
+submit model_id:
 	./target/release-client-lto/zkopml-cli submit \
 	--eth-node-address {{eth_rpc}} \
-	--model-registry-address {{registry}} \
-	--fault-proof-address {{fault_proof}} \
-	--user-key {{user}} \
+	--model-registry-address ${MODEL_REGISTRY_SMART_CONTRACT} \
+	--fault-proof-address ${FDG_SMART_CONTRACT} \
+	--user-key {{user_address}} \
 	--model-id {{model_id}} \
-	--model-path {{model}} \
+	--model-path ${MODEL_PATH} \
 	{{verbosity}}
 
-submit-defect:
+submit-defect model_id operator_index:
 	./target/release-client-lto/zkopml-cli submit \
 	--eth-node-address {{eth_rpc}} \
-	--model-registry-address {{registry}} \
-	--fault-proof-address {{fault_proof}} \
-	--user-key {{user}} \
+	--model-registry-address ${MODEL_REGISTRY_SMART_CONTRACT} \
+	--fault-proof-address ${FDG_SMART_CONTRACT} \
+	--user-key {{user_address}} \
 	--model-id {{model_id}} \
-	--model-path {{model}} \
+	--model-path ${MODEL_PATH} \
 	--defect \
 	{{verbosity}}
 
-verify:
+verify model_id:
 	SP1_PROVER=network NETWORK_RPC_URL=${NETWORK_RPC_URL} NETWORK_PRIVATE_KEY=${NETWORK_PRIVATE_KEY} \
 	./target/release-client-lto/zkopml-cli verify \
 	--eth-node-address {{eth_rpc}} \
-	--model-registry-address {{registry}} \
-	--fault-proof-address {{fault_proof}} \
-	--user-key {{user}} \
+	--model-registry-address ${MODEL_REGISTRY_SMART_CONTRACT} \
+	--fault-proof-address ${FDG_SMART_CONTRACT} \
+	--user-key {{user_address}} \
 	--model-id {{model_id}} \
-	--model-path {{model}} \
+	--model-path ${MODEL_PATH} \
 	{{verbosity}}
 
-prove:
+prove-local:
 	./target/release-client-lto/zkopml-cli prove \
-	--model-path {{model}} \
-	--operator-index {{operator_index}} \
+	--model-path ${MODEL_PATH} \
 	--sp1-prover cpu \
 	{{verbosity}}
 
-prove-network:
+prove-network operator_index:
 	SP1_PROVER=network NETWORK_RPC_URL=${NETWORK_RPC_URL} NETWORK_PRIVATE_KEY=${NETWORK_PRIVATE_KEY} \
 	./target/release-client-lto/zkopml-cli prove \
-	--model-path {{model}} \
+	--model-path ${MODEL_PATH} \
 	--operator-index {{operator_index}} \
 	--sp1-prover network \
 	{{verbosity}}
