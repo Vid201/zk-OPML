@@ -37,7 +37,7 @@ deploy-create2:
 deploy-sp1-verifier:
 	cd contracts/foundry/lib/sp1-contracts/contracts && \
 	FOUNDRY_PROFILE=deploy forge script ./script/deploy/SP1VerifierGatewayPlonk.s.sol:SP1VerifierGatewayScript --private-key {{deployer_address}} --multi --broadcast && \
-	FOUNDRY_PROFILE=deploy forge script ./script/deploy/v4.0.0-rc.3/SP1VerifierPlonk.s.sol:SP1VerifierScript --private-key {{deployer_address}} --multi --broadcast
+	FOUNDRY_PROFILE=deploy forge script ./script/deploy/v5.0.0/SP1VerifierPlonk.s.sol:SP1VerifierScript --private-key {{deployer_address}} --multi --broadcast
 
 deploy-smart-contracts:
 	./target/release-client-lto/zkopml-cli deploy \
