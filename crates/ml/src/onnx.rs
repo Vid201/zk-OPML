@@ -24,15 +24,22 @@ impl Model {
         self.inner.graph.clone().unwrap().node.len()
     }
 
-    pub fn prepare_inputs(&self, inputs: &mut HashMap<String, Tensor>) -> anyhow::Result<()> {
+    pub fn prepare_inputs(
+        &self,
+        inputs: &mut HashMap<String, Tensor>,
+        input_data: Vec<f64>,
+    ) -> anyhow::Result<Vec<String>> {
         let graph = self.inner.graph.clone().unwrap();
         let constants: std::collections::HashSet<_> =
             graph.initializer.iter().map(|i| i.name.as_str()).collect();
+        let mut input_names = Vec::new();
         for input in graph.input.iter() {
             use candle_onnx::onnx::tensor_proto::DataType;
             if constants.contains(input.name.as_str()) {
                 continue;
             }
+
+            input_names.push(input.name.clone());
 
             let type_ = input.r#type.as_ref().expect("no type for input");
             let type_ = type_.value.as_ref().expect("no type.value for input");
@@ -77,14 +84,14 @@ impl Model {
                             }
                         })
                         .collect::<anyhow::Result<Vec<usize>>>()?;
-                    Tensor::ones(dims, dt, &Device::Cpu)?
+                    Tensor::from_vec(input_data.clone(), dims, &Device::Cpu)?.to_dtype(dt)?
                 }
                 type_ => anyhow::bail!("unsupported input type {type_:?}"),
             };
             inputs.insert(input.name.clone(), value);
         }
 
-        Ok(())
+        Ok(input_names)
     }
 
     pub fn inference(

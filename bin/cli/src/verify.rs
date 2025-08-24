@@ -9,7 +9,7 @@ use alloy::{
     sol,
     sol_types::SolEvent,
 };
-use candle_core::Tensor;
+use candle_core::{DType, Tensor};
 use candle_onnx::eval::{get_tensor, simple_eval_one};
 use futures_util::StreamExt;
 use sha2::Digest;
@@ -125,6 +125,26 @@ pub async fn verify(args: VerifyArgs) -> anyhow::Result<()> {
 
         let mut inputs: HashMap<String, Tensor> = serde_json::from_slice(&input_data).unwrap();
 
+        for (name, tensor) in &inputs {
+            match tensor.dtype() {
+                DType::F32 => {
+                    info!(
+                        "Input tensor '{}': {:?}",
+                        name,
+                        tensor.flatten_all()?.to_vec1::<f32>()?
+                    );
+                }
+                DType::F64 => {
+                    info!(
+                        "Input tensor '{}': {:?}",
+                        name,
+                        tensor.flatten_all()?.to_vec1::<f64>()?
+                    );
+                }
+                _ => {}
+            }
+        }
+
         let mut inference_data: HashMap<U256, Vec<HashMap<String, Tensor>>> = HashMap::new();
         let mut inference_data_hashes: HashMap<U256, Vec<HashMap<String, [u8; 32]>>> =
             HashMap::new();
@@ -187,7 +207,11 @@ pub async fn verify(args: VerifyArgs) -> anyhow::Result<()> {
 
         for output in model.graph().unwrap().output.iter() {
             if let Some(tensor) = inputs.get(output.name.as_str()) {
-                info!("Inference result for {}: {:?}", output.name, tensor);
+                info!(
+                    "Inference result for {}: {:?}",
+                    output.name,
+                    tensor.to_string()
+                );
                 result.insert(output.name.clone(), tensor.clone());
             }
         }

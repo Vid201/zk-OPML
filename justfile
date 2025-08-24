@@ -3,12 +3,14 @@ set dotenv-load
 
 verbosity := "" # "-v"
 eth_rpc := "ws://127.0.0.1:8546"
-deployer_address := "0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80"
-owner_address := "0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80"
-user_address := "0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80"
+deployer_address := "0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80" # 0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266
+owner_address := "0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80" # 0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266
+user_address := "0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80" # 0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266
+submitter_address := "0xfa4c357eeb953ffcd38b4c7bb282cf8b39e937f9010303da91d6c47593089929" # 0x959e4995EEfFB30634cb9Af0221F12aaAaeb95a8
+challenger_address := "0x00566ed531fdab159108c6a1ed3e0bc02082f73c007545aca3de158ba35fe978" # 0x28AB4ac67C170F7401e5D00680eB49f377b9ebd6
 sp1_verifier_smart_contract := "0x61EEd5eE968506eB27320FD776Fe14E4842b1990"
 challenge_window := "5000"
-response_window := "10"
+response_window := "30"
 
 # default recipe to display help information
 default:
@@ -25,7 +27,9 @@ setup-network:
 	sleep 5 && \
 	eth_accounts_response=$(curl -s -X POST -H "Content-Type: application/json" --data '{"jsonrpc":"2.0","method":"eth_accounts","params":[],"id":1}' http://127.0.0.1:8545) && \
 	account=$(echo "$eth_accounts_response" | jq -r '.result[0]') && \
-	curl -s -X POST -H "Content-Type: application/json" --data "{\"jsonrpc\":\"2.0\",\"method\":\"eth_sendTransaction\",\"params\":[{\"from\": \"$account\", \"to\": \"0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266\", \"value\": \"0x56BC75E2D63100000\"}],\"id\":1}" http://127.0.0.1:8545
+	curl -s -X POST -H "Content-Type: application/json" --data "{\"jsonrpc\":\"2.0\",\"method\":\"eth_sendTransaction\",\"params\":[{\"from\": \"$account\", \"to\": \"0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266\", \"value\": \"0x56BC75E2D63100000\"}],\"id\":1}" http://127.0.0.1:8545 && \
+	curl -s -X POST -H "Content-Type: application/json" --data "{\"jsonrpc\":\"2.0\",\"method\":\"eth_sendTransaction\",\"params\":[{\"from\": \"$account\", \"to\": \"0x959e4995EEfFB30634cb9Af0221F12aaAaeb95a8\", \"value\": \"0x56BC75E2D63100000\"}],\"id\":1}" http://127.0.0.1:8545 && \
+	curl -s -X POST -H "Content-Type: application/json" --data "{\"jsonrpc\":\"2.0\",\"method\":\"eth_sendTransaction\",\"params\":[{\"from\": \"$account\", \"to\": \"0x28AB4ac67C170F7401e5D00680eB49f377b9ebd6\", \"value\": \"0x56BC75E2D63100000\"}],\"id\":1}" http://127.0.0.1:8545
 
 shutdown-network:
 	docker compose down
@@ -72,7 +76,7 @@ submit model_id:
 	--eth-node-address {{eth_rpc}} \
 	--model-registry-address ${MODEL_REGISTRY_SMART_CONTRACT} \
 	--fault-proof-address ${FDG_SMART_CONTRACT} \
-	--user-key {{user_address}} \
+	--user-key {{submitter_address}} \
 	--model-id {{model_id}} \
 	--model-path ${MODEL_PATH} \
 	{{verbosity}}
@@ -82,9 +86,10 @@ submit-defect model_id operator_index:
 	--eth-node-address {{eth_rpc}} \
 	--model-registry-address ${MODEL_REGISTRY_SMART_CONTRACT} \
 	--fault-proof-address ${FDG_SMART_CONTRACT} \
-	--user-key {{user_address}} \
+	--user-key {{submitter_address}} \
 	--model-id {{model_id}} \
 	--model-path ${MODEL_PATH} \
+	--operator-index {{operator_index}} \
 	--defect \
 	{{verbosity}}
 
@@ -94,7 +99,7 @@ verify model_id:
 	--eth-node-address {{eth_rpc}} \
 	--model-registry-address ${MODEL_REGISTRY_SMART_CONTRACT} \
 	--fault-proof-address ${FDG_SMART_CONTRACT} \
-	--user-key {{user_address}} \
+	--user-key {{challenger_address}} \
 	--model-id {{model_id}} \
 	--model-path ${MODEL_PATH} \
 	{{verbosity}}
@@ -102,6 +107,7 @@ verify model_id:
 prove-local:
 	./target/release-client-lto/zkopml-cli prove \
 	--model-path ${MODEL_PATH} \
+	--input-data-path ${INPUT_DATA_PATH} \
 	--sp1-prover cpu \
 	{{verbosity}}
 
@@ -109,6 +115,7 @@ prove-network operator_index:
 	SP1_PROVER=network NETWORK_RPC_URL=${NETWORK_RPC_URL} NETWORK_PRIVATE_KEY=${NETWORK_PRIVATE_KEY} \
 	./target/release-client-lto/zkopml-cli prove \
 	--model-path ${MODEL_PATH} \
+	--input-data-path ${INPUT_DATA_PATH} \
 	--operator-index {{operator_index}} \
 	--sp1-prover network \
 	{{verbosity}}

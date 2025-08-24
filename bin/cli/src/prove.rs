@@ -1,13 +1,11 @@
 use alloy::hex::ToHexExt;
 use candle_core::Tensor;
 use candle_onnx::eval::{get_tensor, simple_eval_one};
-use sp1_sdk::{
-    HashableKey, Prover, ProverClient, SP1Stdin, include_elf, network::FulfillmentStrategy,
-};
+use sp1_sdk::{Prover, ProverClient, SP1Stdin, include_elf, network::FulfillmentStrategy};
 use std::collections::HashMap;
 use tracing::info;
 use zkopml_ml::{
-    data::tensor_hash,
+    data::{extract_input_data, tensor_hash},
     merkle::{MerkleTreeHash, ModelMerkleTree},
     onnx::load_onnx_model,
 };
@@ -26,6 +24,10 @@ pub struct ProveArgs {
     /// Path to the model file (ONNX)
     #[clap(long)]
     pub model_path: String,
+
+    /// Path to the input data file (JSON)
+    #[clap(long)]
+    pub input_data_path: String,
 
     /// Index of the ONNX operator to prove
     /// If not provided, the prover will prove all operators
@@ -84,7 +86,9 @@ pub async fn prove(args: ProveArgs) -> anyhow::Result<()> {
             let tensor = get_tensor(t, t.name.as_str())?;
             inputs.insert(t.name.to_string(), tensor);
         }
-        model.prepare_inputs(&mut inputs)?;
+        let input_data =
+            extract_input_data(&std::fs::read_to_string(args.input_data_path.clone())?)?;
+        model.prepare_inputs(&mut inputs, input_data)?;
         for j in 0..*node_index {
             let node = model.get_node(j).unwrap();
             simple_eval_one(&node, &mut inputs)?;
@@ -145,8 +149,8 @@ pub async fn prove(args: ProveArgs) -> anyhow::Result<()> {
             info!("Inputs hash: {:?}", inputs_hash.encode_hex());
             info!("Outputs hash: {:?}", outputs_hash.encode_hex());
 
-            let (_, vk) = client.setup(ELF);
-            info!("Generated keys (setup), vk: {:?}", vk.bytes32());
+            // let (_, vk) = client.setup(ELF);
+            // info!("Generated keys (setup), vk: {:?}", vk.bytes32());
         } else {
             info!("Using the network SP1 prover.");
             let client = ProverClient::builder().network().build();

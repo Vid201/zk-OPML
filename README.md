@@ -34,21 +34,16 @@ First, build the code:
 just build
 ```
 
-Then we need to setup the development environment (local Ethereum network and IPFS) and deploy all needed smart contracts:
-
-```bash
-just setup-network # ethereum, IPFS
-just deploy-create2 # create2 smart contract
-just deploy-sp1-verifier # SP1 on-chain verifier
-just deploy-smart-contracts # ML model registry, FDG smart contract
-```
-
 Before starting the zk-OPML, we need to set a few environment variables. Even though testing is performed on the local Ethereum devnet, the SP1 ZKVM proof generation requests are sent to the [Succinct Prover Network](https://docs.succinct.xyz/docs/sp1/prover-network/quickstart). For more information on how to use the prover network, check the provided link. You need to configure your `.env` file with the following variables (check `.env.example`):
 
 ```bash
 # ML model
 MODEL_PATH=<path-to-the-testing-ml-model> # check the folder testdata for all ML models that were tested; this model will be used everywhere
 INPUT_DATA_PATH=<path-to-the-input-data>
+
+# SP1 verifier smart contracts (variables needed to deploy local SP1 smart contract verifier)
+CHAINS=DEV
+RPC_DEV=http://127.0.0.1:8545
 
 # Smart contracts
 MODEL_REGISTRY_SMART_CONTRACT=<model-registry-smart-contract-address> # check the output of just deploy-smart-contracts
@@ -57,6 +52,15 @@ FDG_SMART_CONTRACT=<fdg-smart-contract-address> # check the output of just deplo
 # SP1 prover network
 NETWORK_PRIVATE_KEY=<private-key-for-succinct-prover-network>
 NETWORK_RPC_URL=<rpc-url-for-succinct-prover-network>
+```
+
+Then we need to setup the development environment (local Ethereum network and IPFS) and deploy all needed smart contracts:
+
+```bash
+just setup-network # ethereum, IPFS
+just deploy-create2 # create2 smart contract
+just deploy-sp1-verifier # SP1 on-chain verifier
+just deploy-smart-contracts # ML model registry, FDG smart contract
 ```
 
 After everything is set up, we can first start with registering the ML model to the model registry smart contract:

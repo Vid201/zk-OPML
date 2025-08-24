@@ -9,7 +9,10 @@ use candle_onnx::eval::get_tensor;
 use sha2::Digest;
 use std::{collections::HashMap, str::FromStr};
 use tracing::info;
-use zkopml_ml::{data::tensor_hash, onnx::load_onnx_model};
+use zkopml_ml::{
+    data::{extract_input_data, tensor_hash},
+    onnx::load_onnx_model,
+};
 
 #[derive(clap::Args, Debug, Clone)]
 pub struct RequestArgs {
@@ -27,6 +30,10 @@ pub struct RequestArgs {
     /// Path to the model file (ONNX)
     #[clap(long)]
     pub model_path: String,
+
+    /// Path to the input data file (JSON)
+    #[clap(long)]
+    pub input_data_path: String,
 
     /// Secret key to use for requesting the inference
     #[clap(long)]
@@ -55,8 +62,9 @@ pub async fn request(args: RequestArgs) -> anyhow::Result<()> {
     info!("Reading the model file from {}", args.model_path);
     let model_path = args.model_path.clone();
     let model = load_onnx_model(&model_path)?;
+    let input_data = extract_input_data(&std::fs::read_to_string(args.input_data_path)?)?;
     let mut inputs: HashMap<String, Tensor> = HashMap::new();
-    model.prepare_inputs(&mut inputs)?;
+    let input_names = model.prepare_inputs(&mut inputs, input_data)?;
     for t in model.graph().clone().unwrap().initializer.iter() {
         let tensor = get_tensor(t, t.name.as_str())?;
         inputs.insert(t.name.to_string(), tensor);
@@ -71,8 +79,7 @@ pub async fn request(args: RequestArgs) -> anyhow::Result<()> {
     let mut hasher = sha2::Sha256::new();
     hasher.update(serde_json::to_string(&input_entries).unwrap().as_bytes()); // TODO: figure out how to more efficiently hash a tensor
     let hash: [u8; 32] = hasher.finalize().into();
-    let node = model.get_node(0).unwrap();
-    inputs.retain(|k: &String, _| node.input.contains(k));
+    inputs.retain(|k: &String, _| input_names.contains(k));
 
     // Request the inference
     let model_registry =

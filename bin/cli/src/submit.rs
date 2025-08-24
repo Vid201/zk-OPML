@@ -8,7 +8,7 @@ use alloy::{
     sol,
     sol_types::SolEvent,
 };
-use candle_core::Tensor;
+use candle_core::{DType, Tensor};
 use candle_onnx::eval::{get_tensor, simple_eval_one};
 use futures_util::stream::StreamExt;
 use rand::Rng;
@@ -45,6 +45,10 @@ pub struct SubmitArgs {
     /// Path to the model file (ONNX)
     #[clap(long)]
     pub model_path: String,
+
+    /// Index of the operator to produce a defect
+    #[clap(long)]
+    pub operator_index: Option<u8>,
 
     /// Whether to submit wrong result (for testing purposes)
     #[clap(long, short)]
@@ -116,13 +120,37 @@ pub async fn submit(args: SubmitArgs) -> anyhow::Result<()> {
 
         let mut inputs: HashMap<String, Tensor> = serde_json::from_slice(&input_data).unwrap();
 
+        for (name, tensor) in &inputs {
+            match tensor.dtype() {
+                DType::F32 => {
+                    info!(
+                        "Input tensor '{}': {:?}",
+                        name,
+                        tensor.flatten_all()?.to_vec1::<f32>()?
+                    );
+                }
+                DType::F64 => {
+                    info!(
+                        "Input tensor '{}': {:?}",
+                        name,
+                        tensor.flatten_all()?.to_vec1::<f64>()?
+                    );
+                }
+                _ => {}
+            }
+        }
+
         let mut inference_hashes: HashMap<U256, Vec<([u8; 32], [u8; 32])>> = HashMap::new();
 
         // If the defect flag is set, randomly select an operator to produce a defect
         let defect_index = if args.defect {
-            let mut rng = rand::rng();
-            let random_index = rng.random_range(0..model.num_operators());
-            Some(random_index)
+            if let Some(operator_index) = args.operator_index {
+                Some(operator_index as usize)
+            } else {
+                let mut rng = rand::rng();
+                let random_index = rng.random_range(0..model.num_operators());
+                Some(random_index)
+            }
         } else {
             None
         };
