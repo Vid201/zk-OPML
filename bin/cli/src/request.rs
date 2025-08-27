@@ -6,12 +6,12 @@ use alloy::{
 };
 use candle_core::Tensor;
 use candle_onnx::eval::get_tensor;
-use sha2::Digest;
 use std::{collections::HashMap, str::FromStr};
 use tracing::info;
 use zkopml_ml::{
     data::{extract_input_data, tensor_hash},
     onnx::load_onnx_model,
+    utils::hash_buffer,
 };
 
 #[derive(clap::Args, Debug, Clone)]
@@ -76,9 +76,7 @@ pub async fn request(args: RequestArgs) -> anyhow::Result<()> {
     }
     let mut input_entries = input_hashes.iter().collect::<Vec<_>>();
     input_entries.sort_by(|a, b| a.0.cmp(b.0));
-    let mut hasher = sha2::Sha256::new();
-    hasher.update(serde_json::to_string(&input_entries).unwrap().as_bytes()); // TODO: figure out how to more efficiently hash a tensor
-    let hash: [u8; 32] = hasher.finalize().into();
+    let hash = hash_buffer(serde_json::to_string(&input_entries).unwrap().as_bytes());
     inputs.retain(|k: &String, _| input_names.contains(k));
 
     // Request the inference

@@ -1,7 +1,7 @@
 use crate::utils::node_hash;
 use candle_onnx::onnx::{GraphProto, NodeProto};
 use rs_merkle::algorithms::Sha256;
-use rs_merkle::{Hasher, MerkleProof, MerkleTree};
+use rs_merkle::{MerkleProof, MerkleTree};
 
 pub type MerkleTreeHash = [u8; 32];
 
@@ -11,13 +11,7 @@ pub struct ModelMerkleTree {
 
 impl ModelMerkleTree {
     pub fn new(nodes: Vec<NodeProto>, graph: GraphProto) -> Self {
-        let leaves: Vec<[u8; 32]> = nodes
-            .iter()
-            .map(|node| {
-                let hash = node_hash(node, &graph);
-                Sha256::hash(hash.as_slice())
-            })
-            .collect();
+        let leaves: Vec<[u8; 32]> = nodes.iter().map(|node| node_hash(node, &graph)).collect();
 
         Self {
             inner: MerkleTree::<Sha256>::from_leaves(&leaves),

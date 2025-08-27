@@ -1,13 +1,15 @@
 use candle_core::Tensor;
 use serde_json::Value;
-use sha2::{Digest, Sha256};
 use std::collections::VecDeque;
 
+use crate::utils::hash_buffer;
+
 pub fn tensor_hash(tensor: &Tensor) -> [u8; 32] {
+    // TODO: future work how to more efficiently hash tensors
     let tensor = tensor.round_to(3).unwrap();
-    let mut hasher = Sha256::new();
-    hasher.update(serde_json::to_string(&tensor).unwrap().as_bytes());
-    hasher.finalize().into()
+    let mut buffer = Vec::new();
+    tensor.write_bytes(&mut buffer).unwrap();
+    hash_buffer(&buffer)
 }
 
 pub fn extract_input_data(json_str: &str) -> anyhow::Result<Vec<f64>> {

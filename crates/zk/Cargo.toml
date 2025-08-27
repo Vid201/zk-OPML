@@ -11,6 +11,4 @@ rs_merkle.workspace = true
 serde_json.workspace = true
 sp1-zkvm.workspace = true
 
-sha2.workspace = true
-
 zkopml-ml.workspace = true

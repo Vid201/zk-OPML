@@ -9,3 +9,9 @@ target/
 
 # ONNX models
 testdata/**/*.onnx
+
+# SP1 trace files
+trace.json
+
+# VSCode
+.vscode/

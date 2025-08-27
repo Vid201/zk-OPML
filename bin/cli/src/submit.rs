@@ -12,10 +12,9 @@ use candle_core::{DType, Tensor};
 use candle_onnx::eval::{get_tensor, simple_eval_one};
 use futures_util::stream::StreamExt;
 use rand::Rng;
-use sha2::Digest;
 use std::{collections::HashMap, str::FromStr};
 use tracing::info;
-use zkopml_ml::{data::tensor_hash, onnx::load_onnx_model};
+use zkopml_ml::{data::tensor_hash, onnx::load_onnx_model, utils::hash_buffer};
 
 #[derive(clap::Args, Debug, Clone)]
 pub struct SubmitArgs {
@@ -174,9 +173,7 @@ pub async fn submit(args: SubmitArgs) -> anyhow::Result<()> {
             }
             let mut input_entries = input_hashes.iter().collect::<Vec<_>>();
             input_entries.sort_by(|a, b| a.0.cmp(b.0));
-            let mut hasher = sha2::Sha256::new();
-            hasher.update(serde_json::to_string(&input_entries).unwrap().as_bytes()); // TODO: figure out how to more efficiently hash a tensor
-            let input_hash: [u8; 32] = hasher.finalize().into();
+            let input_hash = hash_buffer(serde_json::to_string(&input_entries).unwrap().as_bytes());
 
             simple_eval_one(&node, &mut inputs)?;
 
@@ -203,9 +200,8 @@ pub async fn submit(args: SubmitArgs) -> anyhow::Result<()> {
             }
             let mut input_entries = input_hashes.iter().collect::<Vec<_>>();
             input_entries.sort_by(|a, b| a.0.cmp(b.0));
-            let mut hasher = sha2::Sha256::new();
-            hasher.update(serde_json::to_string(&input_entries).unwrap().as_bytes()); // TODO: figure out how to more efficiently hash a tensor
-            let output_hash: [u8; 32] = hasher.finalize().into();
+            let output_hash =
+                hash_buffer(serde_json::to_string(&input_entries).unwrap().as_bytes());
 
             inference_hashes
                 .entry(inference_id)
@@ -233,9 +229,7 @@ pub async fn submit(args: SubmitArgs) -> anyhow::Result<()> {
         }
         let mut input_entries = input_hashes.iter().collect::<Vec<_>>();
         input_entries.sort_by(|a, b| a.0.cmp(b.0));
-        let mut hasher = sha2::Sha256::new();
-        hasher.update(serde_json::to_string(&input_entries).unwrap().as_bytes()); // TODO: figure out how to more efficiently hash a tensor
-        let hash: [u8; 32] = hasher.finalize().into();
+        let hash = hash_buffer(serde_json::to_string(&input_entries).unwrap().as_bytes());
 
         // Submit the result
         let output_data =

@@ -111,6 +111,14 @@ prove-local:
 	--sp1-prover cpu \
 	{{verbosity}}
 
+prove-local-profile operator_index:
+	TRACE_FILE=trace.json TRACE_SAMPLE_RATE=100 ./target/release-client-lto/zkopml-cli prove \
+	--model-path ${MODEL_PATH} \
+	--input-data-path ${INPUT_DATA_PATH} \
+	--operator-index {{operator_index}} \
+	--sp1-prover cpu \
+	{{verbosity}}
+
 prove-network operator_index:
 	SP1_PROVER=network NETWORK_RPC_URL=${NETWORK_RPC_URL} NETWORK_PRIVATE_KEY=${NETWORK_PRIVATE_KEY} \
 	./target/release-client-lto/zkopml-cli prove \
@@ -119,3 +127,6 @@ prove-network operator_index:
 	--operator-index {{operator_index}} \
 	--sp1-prover network \
 	{{verbosity}}
+
+load-prove-profile:
+	samply load trace.json --no-open

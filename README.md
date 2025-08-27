@@ -25,6 +25,7 @@ The project is structured in the following way:
 4. [Docker](https://www.docker.com/)
 5. [SP1 ZKVM](https://docs.succinct.xyz/docs/sp1/introduction)
 6. [Foundry](https://getfoundry.sh/)
+7. [Samply](https://github.com/mstange/samply)
 
 ## Usage
 

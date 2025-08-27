@@ -40,7 +40,7 @@ candle-onnx = { git = "https://github.com/Vid201/candle/", branch = "feat/onnx_e
 
 # sp1
 sp1-build = "5.2.1"
-sp1-sdk = "5.2.1"
+sp1-sdk = { version = "5.2.1", features = ["profiling"] }
 sp1-zkvm = "5.2.1"
 
 # zkopml dependencies
