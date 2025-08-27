@@ -94,16 +94,21 @@ just shutdown-network
 
 The following ML models are available in the `testdata` directory:
 
-- `testdata/lenet`: LeNet convolutional neural network
-- TODO
-- TODO
+- `testdata/lenet_5`: LeNet 
+- `testdata/xg_boost`: XGBoost
+- `testdata/mobilenet`: MobileNet
 - TODO
 
 To use a specific model, set the variable `MODEL_PATH` in the `.env` to the location of the model's ONNX file.
 
 ## Results
 
-TODO
+| Model Name | Number of ONNX operators | Number of parameters | Size (MB)  | zk-OPML time | EZKL proving time |
+|----------|----------|----------|----------|----------|----------|
+|   LeNet  |   12  |   61,706  |   0.24  |   TIME  |   TIME  |
+|   XGBoost  |   62  |   3,420  |   0.03  |   TIME  |   TIME  |
+|   MobileNet  |   155  |   3.539.138  |  13.6  |   TIME  |   TIME  |
+|   Row4A  |   Row4B  |   Row4C  |   Row4D  |   TIME  |   TIME  |
 
 ## License
 

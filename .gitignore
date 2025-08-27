@@ -9,6 +9,7 @@ target/
 
 # ONNX models
 testdata/**/*.onnx
+testdata/**/*.json
 
 # SP1 trace files
 trace.json
