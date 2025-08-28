@@ -94,10 +94,10 @@ just shutdown-network
 
 The following ML models are available in the `testdata` directory:
 
-- `testdata/lenet_5`: LeNet 
+- `testdata/lenet_5`: LeNet
 - `testdata/xg_boost`: XGBoost
+- `testdata/1d_conv`: Neural network with 1-dimensional convolution
 - `testdata/mobilenet`: MobileNet
-- TODO
 
 To use a specific model, set the variable `MODEL_PATH` in the `.env` to the location of the model's ONNX file.
 
@@ -107,8 +107,8 @@ To use a specific model, set the variable `MODEL_PATH` in the `.env` to the loca
 |----------|----------|----------|----------|----------|----------|
 |   LeNet  |   12  |   61,706  |   0.24  |   TIME  |   TIME  |
 |   XGBoost  |   62  |   3,420  |   0.03  |   TIME  |   TIME  |
+|  1D conv   |   13  |   1.120.902  |   4.28  |   TIME  |   TIME  |
 |   MobileNet  |   155  |   3.539.138  |  13.6  |   TIME  |   TIME  |
-|   Row4A  |   Row4B  |   Row4C  |   Row4D  |   TIME  |   TIME  |
 
 ## License
 
