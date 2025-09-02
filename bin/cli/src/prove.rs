@@ -186,9 +186,7 @@ pub async fn prove(args: ProveArgs) -> anyhow::Result<()> {
 
             let proof = client
                 .prove(&pk, &stdin)
-                .cycle_limit(1_000_000_000)
                 .strategy(FulfillmentStrategy::Hosted)
-                .skip_simulation(true)
                 .plonk()
                 .run()
                 .unwrap();

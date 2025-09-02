@@ -16,6 +16,7 @@ The project is structured in the following way:
 - `crates`: common code in Rust, SP1 ZKVM program
 - `bin`: source code for binaries, CLI
 - `testdata`: test ML models and data for development and testing
+- `notebooks`: Jupyter Notebooks for ZKML/EZKL experiments
 
 ## Prerequisites
 
@@ -105,10 +106,10 @@ To use a specific model, set the variable `MODEL_PATH` in the `.env` to the loca
 
 | Model Name | Number of ONNX operators | Number of parameters | Size (MB)  | zk-OPML time | EZKL proving time |
 |----------|----------|----------|----------|----------|----------|
-|   LeNet  |   12  |   61,706  |   0.24  |   TIME  |   TIME  |
-|   XGBoost  |   62  |   3,420  |   0.03  |   TIME  |   TIME  |
-|  1D conv   |   13  |   1.120.902  |   4.28  |   TIME  |   TIME  |
-|   MobileNet  |   155  |   3.539.138  |  13.6  |   TIME  |   TIME  |
+|   LeNet  |   12  |   61,706  |   0.24  |   494 s  |   20 s  |
+|   XGBoost  |   62  |   3,420  |   0.03  |   598 s  |   37 s  |
+|  1D conv   |   13  |   1.120.902  |   4.28  |   567 s  |   /  |
+|   MobileNet  |   155  |   3.539.138  |  13.6  |   1115 s  |   /  |
 
 ## License
 
