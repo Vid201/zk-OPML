@@ -95,21 +95,25 @@ just shutdown-network
 
 The following ML models are available in the `testdata` directory:
 
-- `testdata/lenet_5`: LeNet
 - `testdata/xg_boost`: XGBoost
-- `testdata/1d_conv`: Neural network with 1-dimensional convolution
+- `testdata/lenet_5`: LeNet
+- `testdata/2d_conv`: Neural network with 2-dimensional convolution and complex ONNX operators
 - `testdata/mobilenet`: MobileNet
 
 To use a specific model, set the variable `MODEL_PATH` in the `.env` to the location of the model's ONNX file.
 
 ## Results
 
-| Model Name | Number of ONNX operators | Number of parameters | Size (MB)  | zk-OPML time | EZKL proving time |
+| Model Name | Number of ONNX operators | Number of parameters | Size (MB)  | zk-OPML time | EZKL proving time (witness generation and proving) |
 |----------|----------|----------|----------|----------|----------|
-|   LeNet  |   12  |   61,706  |   0.24  |   494 s  |   20 s  |
-|   XGBoost  |   62  |   3,420  |   0.03  |   598 s  |   37 s  |
-|  1D conv   |   13  |   1.120.902  |   4.28  |   567 s  |   /  |
-|   MobileNet  |   155  |   3.539.138  |  13.6  |   1115 s  |   /  |
+|   XGBoost  |   62  |   3,420  |   0.03  |  120 s + 360 s + 118 s = 598 s  |  0.04 s + 18.71 s = 18.75 s  |
+|   LeNet  |   12  |   61,706  |   0.24  |  120 s + 250 s + 134 s = 494 s  |   0.40 s + 35.97 s = 36.37 s  |
+|  2d conv   |   31  |   54,584  |   0.21  |   120 s + 300 s + 146 s = 566 s  |   2.11 s + 253.92 s = 256.03 s  |
+|   MobileNet  |   155  |   3,539,138  |  13.6  |  120 s + 480 s + 515 s = 1115 s  | 351.53 s + / = /  |
+
+> **Note:** The time for zk-OPML was calculated as: zk-OPML time = challenge creation window + 2 × log₂(number of ONNX operators) × response window + SP1 ZKVM proving
+
+> **Note:** EZKL ZK proving was not possible for MobileNet due to very high RAM requirements.
 
 ## License
 
