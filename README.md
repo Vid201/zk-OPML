@@ -107,7 +107,7 @@ To use a specific model, set the variable `MODEL_PATH` in the `.env` to the loca
 | Model Name |  ONNX operators |  Number of ONNX operators | Number of parameters | Size (MB)  | zk-OPML time | EZKL proving time (witness generation and proving) |
 |----------|----------|----------|----------|----------|----------|----------|
 |   XGBoost  | 15 x Constant, 11 x Reshape, 10 x Gather, 5 x Add, 5 x Cast, 5 x Less, 4 x GatherElements, 4 x Mul, 1 x ReduceSum, 1 x Softmax |  62  |   3,420  |   0.03  |  120 s + 360 s + 118 s = 598 s  |  0.04 s + 18.71 s = 18.75 s  |
-|   LeNet  |  3 x Gemm, 2 x Add, 2 x AveragePool, 2 x Conv, 2 x Mul, 1 x Flatten | 12  |   61,706  |   0.24  |  120 s + 250 s + 134 s = 494 s  |   0.40 s + 35.97 s = 36.37 s  |
+|   LeNet  |  3 x Gemm, 2 x Add, 2 x AveragePool, 2 x Conv, 2 x Mul, 1 x Flatten | 12  |   61,706  |   0.24  |  120 s + 240 s + 134 s = 494 s  |   0.40 s + 35.97 s = 36.37 s  |
 |  2d conv   | 12 x Relu, 10 x Conv, 5 x MaxPool, 3 x Gemm, 1 x Flatten |  31  |   54,584  |   0.21  |   120 s + 300 s + 146 s = 566 s  |   2.11 s + 253.92 s = 256.03 s  |
 |   MobileNet  |  54 x Conv, 53 x BatchNormalization, 36 x Relu, 10 x Add, 1 x GlobalAveragePool, 1 x Reshape |  155  |   3,539,138  |  13.6  |  120 s + 480 s + 515 s = 1115 s  | 351.53 s + / = /  |
 
