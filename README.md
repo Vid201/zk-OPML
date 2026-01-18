@@ -99,21 +99,29 @@ The following ML models are available in the `testdata` directory:
 - `testdata/lenet_5`: LeNet
 - `testdata/2d_conv`: Neural network with 2-dimensional convolution and complex ONNX operators
 - `testdata/mobilenet`: MobileNet
+- `testdata/dnn_opml`: DNN from the [OPML paper](https://github.com/ora-io/opml)
 
 To use a specific model, set the variable `MODEL_PATH` in the `.env` to the location of the model's ONNX file.
 
 ## Results
 
-| Model Name |  ONNX operators |  Number of ONNX operators | Number of parameters | Size (MB)  | zk-OPML time | EZKL proving time (witness generation and proving) |
-|----------|----------|----------|----------|----------|----------|----------|
-|   XGBoost  | 15 x Constant, 11 x Reshape, 10 x Gather, 5 x Add, 5 x Cast, 5 x Less, 4 x GatherElements, 4 x Mul, 1 x ReduceSum, 1 x Softmax |  62  |   3,420  |   0.03  |  120 s + 360 s + 118 s = 598 s  |  0.04 s + 18.71 s = 18.75 s  |
-|   LeNet  |  3 x Gemm, 2 x Add, 2 x AveragePool, 2 x Conv, 2 x Mul, 1 x Flatten | 12  |   61,706  |   0.24  |  120 s + 240 s + 134 s = 494 s  |   0.40 s + 35.97 s = 36.37 s  |
-|  2d conv   | 12 x Relu, 10 x Conv, 5 x MaxPool, 3 x Gemm, 1 x Flatten |  31  |   54,584  |   0.21  |   120 s + 300 s + 146 s = 566 s  |   2.11 s + 253.92 s = 256.03 s  |
-|   MobileNet  |  54 x Conv, 53 x BatchNormalization, 36 x Relu, 10 x Add, 1 x GlobalAveragePool, 1 x Reshape |  155  |   3,539,138  |  13.6  |  120 s + 480 s + 515 s = 1115 s  | 351.53 s + / = /  |
+| Model Name |  ONNX operators |  Number of ONNX operators | Number of parameters | Size (MB)  | zk-OPML time | OPML time | EZKL time |
+|----------|----------|----------|----------|----------|----------|----------|----------|
+|   DNN (OPML)  | 2 x Gemm, 1 x Relu  |  3  |   15,910  |  0.06  |  120 s + 120 s + 121 s = 361 s  |  1-layer approach: 120 s + 1440 s + 0.2 s = 1560.2 s  <br> 2-layer approach: 120 s + 180 s + 1140 s + 0.3 s = 1440.3 s | 0.03 s + 9.24 s = 9.27 s |
+|   XGBoost  | 15 x Constant, 11 x Reshape, 10 x Gather, 5 x Add, 5 x Cast, 5 x Less, 4 x GatherElements, 4 x Mul, 1 x ReduceSum, 1 x Softmax |  62  |   3,420  |   0.03  |  120 s + 360 s + 118 s = 598 s  | /  |  0.04 s + 18.71 s = 18.75 s  |
+|   LeNet  |  3 x Gemm, 2 x Add, 2 x AveragePool, 2 x Conv, 2 x Mul, 1 x Flatten | 12  |   61,706  |   0.24  |  120 s + 240 s + 134 s = 494 s  |   /  |   0.40 s + 35.97 s = 36.37 s  |
+|  2d conv   | 12 x Relu, 10 x Conv, 5 x MaxPool, 3 x Gemm, 1 x Flatten |  31  |   54,584  |   0.21  |   120 s + 300 s + 146 s = 566 s  |   /  |  2.11 s + 253.92 s = 256.03 s  |
+|   MobileNet  |  54 x Conv, 53 x BatchNormalization, 36 x Relu, 10 x Add, 1 x GlobalAveragePool, 1 x Reshape |  155  |   3,539,138  |  13.6  |  120 s + 480 s + 515 s = 1115 s  |  /  | 351.53 s + / = /  |
 
-> **Note:** The time for zk-OPML was calculated as: zk-OPML time = challenge creation window + 2 × log₂(number of ONNX operators) × response window + SP1 ZKVM proving
+For benchmarking results with the original OPML framework, please visit the repository at [https://github.com/Vid201/opml](https://github.com/Vid201/opml).
 
-> **Note:** EZKL ZK proving was not possible for MobileNet due to very high RAM requirements.
+For details on the benchmarking process using EZKL, see the notebook file [`notebooks/ezkl_demo.ipynb`](notebooks/ezkl_demo.ipynb).
+
+> **Note:** The time for zk-OPML was calculated as: zk-OPML time = challenge creation window + 2 × ceil(log₂(number of ONNX operators)) × response window + SP1 ZKVM proving. For ZK proving, the operator with the highest computational intensity for the ZKVM was selected in each model (e.g., a Conv, Gemm, or similar).
+
+> **Note:** OPML was evaluated only on the DNN model from their repository, as the current OPML codebase does not support running inference or fault proofs on arbitrary ONNX models. There are two approaches in OPML for FDG: the 1-layer approach and the 2-layer approach. In the **1-layer approach**, binary search is performed directly over MIPS instructions, isolating the faulty instruction during the game. In contrast, the **2-layer approach** first performs binary search over the GGML computation nodes: once a faulty computation node is identified, a second binary search is performed within that node over the corresponding MIPS instructions. The time was calculated in the same way as for zk-OPML (response windows, challenge creation windows ...), although adapted for the OPML techniques. For 1-layer approach, the time was calculated in the following way: challenge creation window + 2 × ceil(log₂(number of MIPS instructions)) × response window + MIPS VM simulation time. For 2-layer approach, it was calculated as follows: challenge creation window + 2 × ceil(log₂(number of [GGML](https://ggml.ai/) computation nodes)) × response window + 2 × ceil(log₂(number of MIPS instructions)) × response window + MIPS VM simulation time. The "number of MIPS instructions" used in the calculation refers to the last computation node in the computation graph, because the OPML codebase currently does not support evaluating all computation nodes and selecting the most complex one for benchmarking, as is done in zk-OPML.
+
+> **Note:** EZKL ZK proving was not possible for MobileNet due to very high RAM requirements. For EZKL, the reported time was calculated as the sum of witness generation time and proving time.
 
 ## License
 

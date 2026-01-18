@@ -1,6 +1,6 @@
 services:
   ipfs_node:
-    image: ipfs/go-ipfs
+    image: ipfs/kubo
     ports:
       - "4001:4001" # IPFS Swarm Port
       - "5001:5001" # IPFS API Port
