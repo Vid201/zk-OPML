@@ -129,7 +129,17 @@ MIT License - see [LICENSE](LICENSE) file for details.
 
 ## Article
 
-TODO
+You can find the article [here](https://link.springer.com/article/10.1007/s44443-026-00573-1).
+
+```
+@article{kervsivc2026zk,
+  title={zk-OPML: Using zero-knowledge proofs to optimize OPML},
+  author={Ker{\v{s}}i{\v{c}}, Vid and Turkanovi{\'c}, Muhamed},
+  journal={Journal of King Saud University: Computer and information sciences.},
+  year={2026},
+  publisher={Springer}
+}
+```
 
 ## Acknowledgments
 
